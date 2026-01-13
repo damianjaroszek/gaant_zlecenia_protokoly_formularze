@@ -15,12 +15,19 @@ export function getDefaultDateRange() {
 
 export function getDaysInRange(from: string, to: string): string[] {
   const days: string[] = [];
-  const current = new Date(from);
-  const end = new Date(to);
+  // Używamy UTC żeby uniknąć problemów ze zmianą czasu
+  const [fromYear, fromMonth, fromDay] = from.split('-').map(Number);
+  const [toYear, toMonth, toDay] = to.split('-').map(Number);
+
+  const current = new Date(Date.UTC(fromYear, fromMonth - 1, fromDay));
+  const end = new Date(Date.UTC(toYear, toMonth - 1, toDay));
 
   while (current <= end) {
-    days.push(formatDate(current));
-    current.setDate(current.getDate() + 1);
+    const year = current.getUTCFullYear();
+    const month = String(current.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(current.getUTCDate()).padStart(2, '0');
+    days.push(`${year}-${month}-${day}`);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   return days;
