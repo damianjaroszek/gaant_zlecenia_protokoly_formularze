@@ -94,51 +94,64 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="timeline-container">
-        <div
-          className="timeline-grid"
-          style={{
-            gridTemplateColumns: `120px repeat(${totalShiftColumns}, minmax(80px, 1fr))`,
-          }}
-        >
-          {/* Nagłówek - dni */}
+      <div className="timeline-wrapper">
+        {/* Stała kolumna linii */}
+        <div className="timeline-lines-column">
           <div className="timeline-header-corner">Linia</div>
-          {days.map((day) => (
-            <div key={day} className="timeline-header-day" style={{ gridColumn: `span ${SHIFTS.length}` }}>
-              {formatDisplayDate(day)}
+          <div className="timeline-subheader-corner"></div>
+          {PRODUCTION_LINES.map((line) => (
+            <div key={line} className={`timeline-line-label line-${line}`}>
+              Linia {line}
             </div>
           ))}
+        </div>
 
-          {/* Nagłówek - zmiany */}
-          <div className="timeline-subheader-corner"></div>
-          {days.map((day) =>
-            SHIFTS.map((shift) => (
-              <div key={`${day}_${shift}`} className="timeline-header-shift">
-                Zm. {shift}
+        {/* Scrollowalny obszar z danymi */}
+        <div className="timeline-scroll-area">
+          <div
+            className="timeline-grid"
+            style={{
+              gridTemplateColumns: `repeat(${totalShiftColumns}, minmax(80px, 1fr))`,
+            }}
+          >
+            {/* Nagłówek - dni */}
+            {days.map((day) => (
+              <div key={day} className="timeline-header-day" style={{ gridColumn: `span ${SHIFTS.length}` }}>
+                {formatDisplayDate(day)}
               </div>
-            ))
-          )}
+            ))}
 
-          {/* Wiersze linii produkcyjnych */}
-          {PRODUCTION_LINES.map((line) => (
-            <LineRow
-              key={line}
-              line={line}
-              days={days}
-              ordersByCell={ordersByCell}
-            />
-          ))}
-        </div>
+            {/* Nagłówek - zmiany */}
+            {days.map((day) =>
+              SHIFTS.map((shift) => (
+                <div key={`${day}_${shift}`} className="timeline-header-shift">
+                  Zm. {shift}
+                </div>
+              ))
+            )}
 
-        {/* Legenda */}
-        <div className="timeline-legend">
-          <span className="legend-title">Linie:</span>
-          {PRODUCTION_LINES.map((line) => (
-            <span key={line} className={`legend-item line-${line}`}>
-              {line}
-            </span>
-          ))}
+            {/* Wiersze linii produkcyjnych */}
+            {PRODUCTION_LINES.map((line) => (
+              <LineRow
+                key={line}
+                line={line}
+                days={days}
+                ordersByCell={ordersByCell}
+                showLabel={false}
+              />
+            ))}
+          </div>
         </div>
+      </div>
+
+      {/* Legenda */}
+      <div className="timeline-legend">
+        <span className="legend-title">Linie:</span>
+        {PRODUCTION_LINES.map((line) => (
+          <span key={line} className={`legend-item line-${line}`}>
+            {line}
+          </span>
+        ))}
       </div>
 
       {/* Overlay podczas przeciągania */}

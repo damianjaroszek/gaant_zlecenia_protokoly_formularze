@@ -1,5 +1,5 @@
-.timeline-container {
-  overflow-x: auto;
+.timeline-wrapper {
+  display: flex;
   padding: 16px;
 }
 
@@ -9,25 +9,49 @@
   color: #666;
 }
 
+/* Stała kolumna linii po lewej */
+.timeline-lines-column {
+  flex-shrink: 0;
+  width: 100px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  z-index: 10;
+}
+
+/* Scrollowalny obszar */
+.timeline-scroll-area {
+  flex: 1;
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  border-radius: 0 8px 8px 0;
+}
+
 .timeline-grid {
   display: grid;
   gap: 1px;
   background: #ddd;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  overflow: hidden;
   min-width: fit-content;
 }
 
-/* Nagłówki */
-.timeline-header-corner,
+/* Nagłówki w kolumnie linii */
+.timeline-header-corner {
+  background: #f5f5f5;
+  padding: 10px 12px;
+  font-weight: 600;
+  border-bottom: 1px solid #ddd;
+  min-height: 42px;
+  box-sizing: border-box;
+}
+
 .timeline-subheader-corner {
   background: #f5f5f5;
-  padding: 8px 12px;
+  padding: 6px 12px;
   font-weight: 600;
-  position: sticky;
-  left: 0;
-  z-index: 2;
+  border-bottom: 1px solid #ddd;
+  min-height: 30px;
+  box-sizing: border-box;
 }
 
 .timeline-header-day {
@@ -36,7 +60,8 @@
   text-align: center;
   font-weight: 600;
   color: #1976d2;
-  border-bottom: 2px solid #1976d2;
+  min-height: 42px;
+  box-sizing: border-box;
 }
 
 .timeline-header-shift {
@@ -45,6 +70,8 @@
   text-align: center;
   font-size: 12px;
   color: #666;
+  min-height: 30px;
+  box-sizing: border-box;
 }
 
 /* Etykiety linii */
@@ -54,10 +81,10 @@
   font-weight: 500;
   display: flex;
   align-items: center;
-  position: sticky;
-  left: 0;
-  z-index: 1;
+  min-height: 60px;
+  border-bottom: 1px solid #ddd;
   border-left: 4px solid;
+  box-sizing: border-box;
 }
 
 /* Komórki */
@@ -69,6 +96,7 @@
   flex-direction: column;
   gap: 4px;
   transition: background-color 0.2s;
+  box-sizing: border-box;
 }
 
 .timeline-cell:hover {
@@ -143,7 +171,7 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  margin-top: 16px;
+  margin: 16px 16px 0 16px;
   padding: 12px;
   background: #f5f5f5;
   border-radius: 8px;
