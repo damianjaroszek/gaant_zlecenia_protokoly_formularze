@@ -1,9 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
   pointerWithin,
 } from '@dnd-kit/core';
 import { Order, PRODUCTION_LINES, SHIFTS } from '../../types';
@@ -22,6 +25,17 @@ interface Props {
 export function Timeline({ orders, dateRange, isLoading }: Props) {
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const updateOrderLine = useUpdateOrderLine();
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const savedScrollLeft = useRef(0);
+
+  // Sensor z dystansem aktywacji - wymusza przesunięcie przed rozpoczęciem drag
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Wymagane przesunięcie o 8px przed aktywacją
+      },
+    })
+  );
 
   const days = useMemo(
     () => getDaysInRange(dateRange.from, dateRange.to),
@@ -76,11 +90,39 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
     const heights = ['40px', '28px'];
     for (const line of PRODUCTION_LINES) {
       const maxOrders = maxOrdersPerLine.get(line) || 1;
-      const height = Math.max(60, baseHeight + (maxOrders * orderHeight));
+      const height = Math.max(60, baseHeight + maxOrders * orderHeight);
       heights.push(`${height}px`);
     }
     return heights.join(' ');
   }, [maxOrdersPerLine]);
+
+  // Zapisz pozycję scrolla przy pointerdown
+  const handlePointerDown = () => {
+    savedScrollLeft.current = scrollAreaRef.current?.scrollLeft ?? 0;
+  };
+
+  // Funkcja blokująca scroll przez określony czas
+  const blockScrollFor = (duration: number) => {
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea) return;
+
+    const targetScroll = scrollArea.scrollLeft;
+
+    const blockScroll = () => {
+      scrollArea.scrollLeft = targetScroll;
+    };
+
+    // Nasłuchuj na scroll i natychmiast cofaj
+    scrollArea.addEventListener('scroll', blockScroll);
+
+    // Dodatkowo wymuszaj pozycję w interwałach
+    const intervalId = setInterval(blockScroll, 10);
+
+    setTimeout(() => {
+      scrollArea.removeEventListener('scroll', blockScroll);
+      clearInterval(intervalId);
+    }, duration);
+  };
 
   const handleDragStart = (event: DragStartEvent) => {
     const order = orders.find((o) => o.id_zlecenia === event.active.id);
@@ -108,6 +150,9 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
       return;
     }
 
+    // KLUCZOWE: Zablokuj scroll PRZED mutacją i przez czas renderowania
+    blockScrollFor(500);
+
     console.log('Updating order:', order.id_zlecenia, 'to line:', newLine);
     updateOrderLine.mutate({
       id_zlecenia: order.id_zlecenia,
@@ -123,9 +168,11 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
 
   return (
     <DndContext
+      sensors={sensors}
       collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      autoScroll={false}
     >
       <div className="timeline-wrapper">
         {/* Stała kolumna linii */}
@@ -143,7 +190,11 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
         </div>
 
         {/* Scrollowalny obszar z danymi */}
-        <div className="timeline-scroll-area">
+        <div
+          className="timeline-scroll-area"
+          ref={scrollAreaRef}
+          onPointerDown={handlePointerDown}
+        >
           <div
             className="timeline-grid"
             style={{
@@ -153,7 +204,11 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
           >
             {/* Nagłówek - dni */}
             {days.map((day) => (
-              <div key={day} className="timeline-header-day" style={{ gridColumn: `span ${SHIFTS.length}` }}>
+              <div
+                key={day}
+                className="timeline-header-day"
+                style={{ gridColumn: `span ${SHIFTS.length}` }}
+              >
                 {formatDisplayDate(day)}
               </div>
             ))}

@@ -47,12 +47,15 @@ export function OrderBlock({ order, hasCollision, isDragging = false }: Props) {
     ? order.opis.slice(0, 30) + '...'
     : order.opis;
 
+  // Usuń tabIndex z atrybutów żeby zapobiec auto-scroll przy focus
+  const { tabIndex, ...restAttributes } = attributes;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...listeners}
-      {...attributes}
+      {...restAttributes}
       className={`order-block ${hasCollision ? 'collision' : ''} ${isDragging ? 'dragging' : ''}`}
       title={`ID: ${order.id_zlecenia}\n${order.opis}\n\nPrzeciągnij na inną linię (ta sama data i zmiana)`}
     >
