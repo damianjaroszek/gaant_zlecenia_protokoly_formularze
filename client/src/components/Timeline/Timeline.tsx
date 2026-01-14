@@ -49,6 +49,39 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
     return map;
   }, [orders]);
 
+  // Oblicz maksymalną liczbę zleceń dla każdej linii
+  const maxOrdersPerLine = useMemo(() => {
+    const lineMaxMap = new Map<number, number>();
+    for (const line of PRODUCTION_LINES) {
+      let maxForLine = 1;
+      for (const day of days) {
+        for (const shift of SHIFTS) {
+          const key = `${day}_${shift}_${line}`;
+          const count = ordersByCell.get(key)?.length || 0;
+          if (count > maxForLine) maxForLine = count;
+        }
+      }
+      lineMaxMap.set(line, maxForLine);
+    }
+    return lineMaxMap;
+  }, [ordersByCell, days]);
+
+  // Generuj wysokości wierszy: nagłówek dni, nagłówek zmian, potem linie
+  // WAŻNE: Ten hook musi być przed warunkowym return!
+  const rowHeights = useMemo(() => {
+    const baseHeight = 36;
+    const orderHeight = 32;
+
+    // Ustaw konkretne wysokości dla nagłówków (muszą być identyczne w obu gridach)
+    const heights = ['40px', '28px'];
+    for (const line of PRODUCTION_LINES) {
+      const maxOrders = maxOrdersPerLine.get(line) || 1;
+      const height = Math.max(60, baseHeight + (maxOrders * orderHeight));
+      heights.push(`${height}px`);
+    }
+    return heights.join(' ');
+  }, [maxOrdersPerLine]);
+
   const handleDragStart = (event: DragStartEvent) => {
     const order = orders.find((o) => o.id_zlecenia === event.active.id);
     setActiveOrder(order || null);
@@ -96,7 +129,10 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
     >
       <div className="timeline-wrapper">
         {/* Stała kolumna linii */}
-        <div className="timeline-lines-column">
+        <div
+          className="timeline-lines-column"
+          style={{ gridTemplateRows: rowHeights }}
+        >
           <div className="timeline-header-corner">Linia</div>
           <div className="timeline-subheader-corner"></div>
           {PRODUCTION_LINES.map((line) => (
@@ -112,6 +148,7 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
             className="timeline-grid"
             style={{
               gridTemplateColumns: `repeat(${totalShiftColumns}, minmax(80px, 1fr))`,
+              gridTemplateRows: rowHeights,
             }}
           >
             {/* Nagłówek - dni */}
