@@ -12,6 +12,30 @@ router.get('/', async (req, res) => {
     return res.status(400).json({ error: 'Wymagane parametry: from, to' });
   }
 
+  // Walidacja formatu daty YYYY-MM-DD
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(from as string) || !dateRegex.test(to as string)) {
+    return res.status(400).json({ error: 'Nieprawidłowy format daty. Wymagany: YYYY-MM-DD' });
+  }
+
+  // Walidacja czy daty są prawidłowe
+  const fromDate = new Date(from as string);
+  const toDate = new Date(to as string);
+  if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+    return res.status(400).json({ error: 'Nieprawidłowa data' });
+  }
+
+  // Walidacja kolejności dat
+  if (fromDate > toDate) {
+    return res.status(400).json({ error: 'Data początkowa musi być wcześniejsza niż końcowa' });
+  }
+
+  // Walidacja maksymalnego zakresu (60 dni)
+  const diffDays = (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24);
+  if (diffDays > 60) {
+    return res.status(400).json({ error: 'Maksymalny zakres to 60 dni' });
+  }
+
   try {
     const query = `
       SELECT

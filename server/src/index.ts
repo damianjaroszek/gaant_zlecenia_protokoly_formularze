@@ -12,12 +12,23 @@ import { requireAuth, requireAdmin } from './middleware/auth.js';
 
 dotenv.config();
 
+// Walidacja wymaganych zmiennych środowiskowych
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+  throw new Error('SESSION_SECRET jest wymagany w zmiennych środowiskowych');
+}
+
+const CORS_ORIGIN = process.env.CORS_ORIGIN;
+if (!CORS_ORIGIN) {
+  throw new Error('CORS_ORIGIN jest wymagany w zmiennych środowiskowych');
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173', // Vite dev server
+  origin: CORS_ORIGIN,
   credentials: true
 }));
 app.use(express.json());
@@ -30,7 +41,7 @@ app.use(session({
     schemaName: 'app_produkcja',
     tableName: 'sessions'
   }),
-  secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {

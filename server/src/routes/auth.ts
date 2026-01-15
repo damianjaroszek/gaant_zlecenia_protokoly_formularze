@@ -1,12 +1,22 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
+import rateLimit from 'express-rate-limit';
 import { pool } from '../config/db.js';
 import { User } from '../types/index.js';
 
 const router = Router();
 
+// Rate limiting dla logowania - max 5 prób na 15 minut
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minut
+  max: 5,
+  message: { error: 'Za dużo prób logowania. Spróbuj ponownie za 15 minut.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
