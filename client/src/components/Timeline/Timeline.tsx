@@ -11,6 +11,7 @@ import {
 } from '@dnd-kit/core';
 import { Order, PRODUCTION_LINES, ProductionLine, SHIFTS } from '../../types';
 import { getDaysInRange, formatDisplayDate } from '../../utils/dates';
+import { assignOrderColors } from '../../utils/orderColors';
 import { useUpdateOrderLine } from '../../hooks/useOrders';
 import { useToast } from '../../context/ToastContext';
 import { LineRow } from './LineRow';
@@ -31,6 +32,9 @@ export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props)
   const { showToast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const savedScrollLeft = useRef(0);
+
+  // Cache kolorów - raz przypisany kolor nie zmienia się podczas sesji
+  const colorCacheRef = useRef<Map<number, number>>(new Map());
 
   // Sensor z dystansem aktywacji - wymusza przesunięcie przed rozpoczęciem drag
   const sensors = useSensors(
@@ -57,6 +61,24 @@ export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props)
     const date = new Date(isoDate);
     return date.toLocaleDateString('sv-SE'); // format YYYY-MM-DD
   };
+
+  // Kolory zleceń - używa cache, aby raz przypisany kolor nie zmieniał się podczas sesji
+  const orderColorMap = useMemo(() => {
+    const cache = colorCacheRef.current;
+
+    // Znajdź zlecenia, które nie mają jeszcze przypisanego koloru
+    const newOrders = orders.filter((o) => !cache.has(o.id_zlecenia));
+
+    if (newOrders.length > 0) {
+      // Oblicz kolory tylko dla nowych zleceń
+      const newColors = assignOrderColors(newOrders);
+      for (const [id, colorIndex] of newColors) {
+        cache.set(id, colorIndex);
+      }
+    }
+
+    return cache;
+  }, [orders]);
 
   // Grupowanie zleceń: { "2025-01-15_1_3": [order1, order2] }
   // klucz: data_zmiana_linia
@@ -256,6 +278,7 @@ export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props)
                 showLabel={false}
                 hoveredOrderId={hoveredOrderId}
                 onOrderHover={setHoveredOrderId}
+                orderColorMap={orderColorMap}
               />
             ))}
           </div>

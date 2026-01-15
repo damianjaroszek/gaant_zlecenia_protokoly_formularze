@@ -8,9 +8,10 @@ interface Props {
   showLabel?: boolean;
   hoveredOrderId: number | null;
   onOrderHover: (orderId: number | null) => void;
+  orderColorMap: Map<number, number>;
 }
 
-export function LineRow({ line, days, ordersByCell, showLabel = true, hoveredOrderId, onOrderHover }: Props) {
+export function LineRow({ line, days, ordersByCell, showLabel = true, hoveredOrderId, onOrderHover, orderColorMap }: Props) {
   return (
     <>
       {showLabel && (
@@ -34,6 +35,7 @@ export function LineRow({ line, days, ordersByCell, showLabel = true, hoveredOrd
               hasCollision={hasCollision}
               hoveredOrderId={hoveredOrderId}
               onOrderHover={onOrderHover}
+              orderColorMap={orderColorMap}
             />
           );
         })
