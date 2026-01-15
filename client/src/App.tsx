@@ -3,16 +3,20 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginForm } from './components/LoginForm';
 import { DateRangePicker } from './components/DateRangePicker';
+import { LineFilter } from './components/LineFilter';
 import { Timeline } from './components/Timeline';
 import { useOrders } from './hooks/useOrders';
 import { getDefaultDateRange } from './utils/dates';
-import { DateRange } from './types';
+import { DateRange, PRODUCTION_LINES, ProductionLine } from './types';
 
 const queryClient = new QueryClient();
 
 function Dashboard() {
   const { user, logout } = useAuth();
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange);
+  const [selectedLines, setSelectedLines] = useState<Set<ProductionLine>>(
+    () => new Set(PRODUCTION_LINES)
+  );
   const { data: orders = [], isLoading, error } = useOrders(dateRange);
 
   return (
@@ -28,6 +32,7 @@ function Dashboard() {
       <main className="main">
         <div className="controls">
           <DateRangePicker value={dateRange} onChange={setDateRange} />
+          <LineFilter selectedLines={selectedLines} onChange={setSelectedLines} />
           <span className="order-count">Znaleziono: {orders.length} zleceń</span>
         </div>
 
@@ -37,7 +42,7 @@ function Dashboard() {
           </div>
         )}
 
-        <Timeline orders={orders} dateRange={dateRange} isLoading={isLoading} />
+        <Timeline orders={orders} dateRange={dateRange} isLoading={isLoading} selectedLines={selectedLines} />
       </main>
     </div>
   );

@@ -22,3 +22,5 @@ export type ProductionLine = typeof PRODUCTION_LINES[number];
 
 export const SHIFTS = [1, 2, 3] as const;
 export type Shift = typeof SHIFTS[number];
+
+export type SelectedLines = Set<ProductionLine>;

@@ -9,7 +9,7 @@ import {
   useSensors,
   pointerWithin,
 } from '@dnd-kit/core';
-import { Order, PRODUCTION_LINES, SHIFTS } from '../../types';
+import { Order, PRODUCTION_LINES, ProductionLine, SHIFTS } from '../../types';
 import { getDaysInRange, formatDisplayDate } from '../../utils/dates';
 import { useUpdateOrderLine } from '../../hooks/useOrders';
 import { LineRow } from './LineRow';
@@ -20,9 +20,10 @@ interface Props {
   orders: Order[];
   dateRange: { from: string; to: string };
   isLoading: boolean;
+  selectedLines: Set<ProductionLine>;
 }
 
-export function Timeline({ orders, dateRange, isLoading }: Props) {
+export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props) {
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const updateOrderLine = useUpdateOrderLine();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -40,6 +41,12 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
   const days = useMemo(
     () => getDaysInRange(dateRange.from, dateRange.to),
     [dateRange.from, dateRange.to]
+  );
+
+  // Filtruj linie na podstawie wyboru użytkownika
+  const visibleLines = useMemo(
+    () => PRODUCTION_LINES.filter((line) => selectedLines.has(line)),
+    [selectedLines]
   );
 
   // Normalizuj datę z ISO do YYYY-MM-DD w lokalnej strefie czasowej
@@ -66,7 +73,7 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
   // Oblicz maksymalną liczbę zleceń dla każdej linii
   const maxOrdersPerLine = useMemo(() => {
     const lineMaxMap = new Map<number, number>();
-    for (const line of PRODUCTION_LINES) {
+    for (const line of visibleLines) {
       let maxForLine = 1;
       for (const day of days) {
         for (const shift of SHIFTS) {
@@ -78,23 +85,27 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
       lineMaxMap.set(line, maxForLine);
     }
     return lineMaxMap;
-  }, [ordersByCell, days]);
+  }, [ordersByCell, days, visibleLines]);
 
   // Generuj wysokości wierszy: nagłówek dni, nagłówek zmian, potem linie
   // WAŻNE: Ten hook musi być przed warunkowym return!
   const rowHeights = useMemo(() => {
-    const baseHeight = 36;
-    const orderHeight = 32;
+    const baseHeight = 8; // padding komórki (4px × 2)
+    const orderHeight = 46; // wysokość pojedynczego bloku zlecenia
+    const orderGap = 4; // gap między blokami
+    const minOrders = 4; // minimalna liczba zleceń do wyświetlenia w wierszu
 
     // Ustaw konkretne wysokości dla nagłówków (muszą być identyczne w obu gridach)
     const heights = ['40px', '28px'];
-    for (const line of PRODUCTION_LINES) {
-      const maxOrders = maxOrdersPerLine.get(line) || 1;
-      const height = Math.max(60, baseHeight + maxOrders * orderHeight);
+    for (const line of visibleLines) {
+      const maxOrders = Math.max(minOrders, maxOrdersPerLine.get(line) || minOrders);
+      // Wysokość = padding + (liczba bloków × wysokość bloku) + ((liczba bloków - 1) × gap)
+      const height = baseHeight + (maxOrders * orderHeight) + ((maxOrders - 1) * orderGap);
       heights.push(`${height}px`);
     }
+    console.log('Row heights:', heights.join(' '));
     return heights.join(' ');
-  }, [maxOrdersPerLine]);
+  }, [maxOrdersPerLine, visibleLines]);
 
   // Zapisz pozycję scrolla przy pointerdown
   const handlePointerDown = () => {
@@ -182,7 +193,7 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
         >
           <div className="timeline-header-corner">Linia</div>
           <div className="timeline-subheader-corner"></div>
-          {PRODUCTION_LINES.map((line) => (
+          {visibleLines.map((line) => (
             <div key={line} className={`timeline-line-label line-${line}`}>
               Linia {line}
             </div>
@@ -223,7 +234,7 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
             )}
 
             {/* Wiersze linii produkcyjnych */}
-            {PRODUCTION_LINES.map((line) => (
+            {visibleLines.map((line) => (
               <LineRow
                 key={line}
                 line={line}
@@ -239,7 +250,7 @@ export function Timeline({ orders, dateRange, isLoading }: Props) {
       {/* Legenda */}
       <div className="timeline-legend">
         <span className="legend-title">Linie:</span>
-        {PRODUCTION_LINES.map((line) => (
+        {visibleLines.map((line) => (
           <span key={line} className={`legend-item line-${line}`}>
             {line}
           </span>
