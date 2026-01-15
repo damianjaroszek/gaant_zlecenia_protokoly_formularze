@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -128,7 +128,6 @@ export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props)
       const height = baseHeight + (maxOrders * orderHeight) + ((maxOrders - 1) * orderGap);
       heights.push(`${height}px`);
     }
-    console.log('Row heights:', heights.join(' '));
     return heights.join(' ');
   }, [maxOrdersPerLine, visibleLines]);
 
@@ -137,28 +136,23 @@ export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props)
     savedScrollLeft.current = scrollAreaRef.current?.scrollLeft ?? 0;
   };
 
-  // Funkcja blokująca scroll przez określony czas
-  const blockScrollFor = (duration: number) => {
+  // Ref do przechowywania stanu blokady scrolla
+  const scrollBlockRef = useRef<boolean>(false);
+
+  // Blokuj scroll przez ustawienie overflow: hidden (bardziej wydajne niż setInterval)
+  const blockScrollFor = useCallback((duration: number) => {
     const scrollArea = scrollAreaRef.current;
-    if (!scrollArea) return;
+    if (!scrollArea || scrollBlockRef.current) return;
 
-    const targetScroll = scrollArea.scrollLeft;
-
-    const blockScroll = () => {
-      scrollArea.scrollLeft = targetScroll;
-    };
-
-    // Nasłuchuj na scroll i natychmiast cofaj
-    scrollArea.addEventListener('scroll', blockScroll);
-
-    // Dodatkowo wymuszaj pozycję w interwałach
-    const intervalId = setInterval(blockScroll, 10);
+    scrollBlockRef.current = true;
+    const savedOverflow = scrollArea.style.overflowX;
+    scrollArea.style.overflowX = 'hidden';
 
     setTimeout(() => {
-      scrollArea.removeEventListener('scroll', blockScroll);
-      clearInterval(intervalId);
+      scrollArea.style.overflowX = savedOverflow || 'auto';
+      scrollBlockRef.current = false;
     }, duration);
-  };
+  }, []);
 
   const handleDragStart = (event: DragStartEvent) => {
     const order = orders.find((o) => o.id_zlecenia === event.active.id);
@@ -182,14 +176,12 @@ export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props)
 
     // Walidacja: inna linia
     if (String(order.liniapm) === newLine) {
-      console.log('Drop rejected: same line');
       return;
     }
 
     // KLUCZOWE: Zablokuj scroll PRZED mutacją i przez czas renderowania
     blockScrollFor(500);
 
-    console.log('Updating order:', order.id_zlecenia, 'to line:', newLine);
     updateOrderLine.mutate(
       {
         id_zlecenia: order.id_zlecenia,

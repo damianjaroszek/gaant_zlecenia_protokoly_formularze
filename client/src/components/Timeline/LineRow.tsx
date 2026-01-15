@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Order, SHIFTS } from '../../types';
 import { ShiftCell } from './ShiftCell';
 
@@ -11,7 +12,7 @@ interface Props {
   orderColorMap: Map<number, number>;
 }
 
-export function LineRow({ line, days, ordersByCell, showLabel = true, hoveredOrderId, onOrderHover, orderColorMap }: Props) {
+export const LineRow = memo(function LineRow({ line, days, ordersByCell, showLabel = true, hoveredOrderId, onOrderHover, orderColorMap }: Props) {
   return (
     <>
       {showLabel && (
@@ -42,4 +43,4 @@ export function LineRow({ line, days, ordersByCell, showLabel = true, hoveredOrd
       )}
     </>
   );
-}
+});

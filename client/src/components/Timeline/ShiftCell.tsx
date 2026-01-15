@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { Order } from '../../types';
 import { OrderBlock } from './OrderBlock';
@@ -13,7 +14,7 @@ interface Props {
   orderColorMap: Map<number, number>;
 }
 
-export function ShiftCell({ day, shift, line, orders, hasCollision, hoveredOrderId, onOrderHover, orderColorMap }: Props) {
+export const ShiftCell = memo(function ShiftCell({ day, shift, line, orders, hasCollision, hoveredOrderId, onOrderHover, orderColorMap }: Props) {
   const { setNodeRef, isOver } = useDroppable({
     id: `cell_${day}_${shift}_${line}`,
   });
@@ -38,4 +39,4 @@ export function ShiftCell({ day, shift, line, orders, hasCollision, hoveredOrder
       ))}
     </div>
   );
-}
+});

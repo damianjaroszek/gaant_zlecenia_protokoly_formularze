@@ -77,8 +77,6 @@ router.patch('/:id', async (req, res) => {
   const { id } = req.params;
   const { new_line } = req.body;
 
-  console.log('PATCH /orders/:id', { id, new_line, body: req.body });
-
   if (!new_line) {
     return res.status(400).json({ error: 'Wymagane pole: new_line' });
   }
@@ -106,7 +104,6 @@ router.patch('/:id', async (req, res) => {
         VALUES (3, $1, 0, 0, 0, 1, 1, $2)
       `;
       await pool.query(insertQuery, [id, new_line.toString()]);
-      console.log('Utworzono nowy rekord w mzk_protokoly_poz dla zlecenia:', id);
     }
 
     res.json({ success: true, id_zlecenia: id, new_line });

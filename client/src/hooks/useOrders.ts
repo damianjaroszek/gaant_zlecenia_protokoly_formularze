@@ -7,6 +7,8 @@ export function useOrders(dateRange: DateRange | null) {
     queryKey: ['orders', dateRange],
     queryFn: () => api.getOrders(dateRange!),
     enabled: !!dateRange,
+    staleTime: 30 * 1000, // Dane świeże przez 30 sekund
+    gcTime: 5 * 60 * 1000, // Cache przez 5 minut
   });
 }
 
