@@ -201,23 +201,23 @@ Linia 3  | [Z4] | [Z4] |       |      |      | [Z7]  |  <- kolizja!
 
 ---
 
-### ETAP 5: Autoryzacja
-- [ ] Utworzenie schematu i tabel w PostgreSQL
-- [ ] Endpoint POST /api/auth/login
-- [ ] Endpoint POST /api/auth/logout
-- [ ] Endpoint GET /api/auth/me
-- [ ] Middleware sprawdzający sesję
-- [ ] AuthContext na frontendzie
-- [ ] ProtectedRoute component
-- [ ] Strona logowania
+### ETAP 5: Autoryzacja ✅ UKOŃCZONY
+- [x] Utworzenie schematu i tabel w PostgreSQL
+- [x] Endpoint POST /api/auth/login
+- [x] Endpoint POST /api/auth/logout
+- [x] Endpoint GET /api/auth/me
+- [x] Middleware sprawdzający sesję
+- [x] AuthContext na frontendzie
+- [x] ProtectedRoute component
+- [x] Strona logowania
 
 ---
 
-### ETAP 6: Dopracowanie
-- [ ] Lepsze style, responsywność
-- [ ] Loading states, error handling
-- [ ] Tooltip z detalami zlecenia
-- [ ] Prosty skrypt do dodawania użytkowników
+### ETAP 6: Dopracowanie ✅ UKOŃCZONY
+- [x] Lepsze style, responsywność
+- [x] Loading states, error handling
+- [x] Tooltip z detalami zlecenia
+- [x] Prosty skrypt do dodawania użytkowników
 
 ---
 

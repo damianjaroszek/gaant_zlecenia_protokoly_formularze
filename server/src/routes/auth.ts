@@ -15,7 +15,7 @@ router.post('/login', async (req, res) => {
 
   try {
     const query = `
-      SELECT id, username, password_hash, display_name, is_active
+      SELECT id, username, password_hash, display_name, is_active, is_admin
       FROM app_produkcja.users
       WHERE username = $1
     `;
@@ -39,11 +39,13 @@ router.post('/login', async (req, res) => {
     // Zapisz sesję
     req.session.userId = user.id;
     req.session.username = user.username;
+    req.session.isAdmin = user.is_admin || false;
 
     res.json({
       id: user.id,
       username: user.username,
-      display_name: user.display_name
+      display_name: user.display_name,
+      is_admin: user.is_admin || false
     });
   } catch (error) {
     console.error('Błąd logowania:', error);
@@ -70,7 +72,7 @@ router.get('/me', async (req, res) => {
 
   try {
     const query = `
-      SELECT id, username, display_name
+      SELECT id, username, display_name, is_admin
       FROM app_produkcja.users
       WHERE id = $1 AND is_active = true
     `;
@@ -81,7 +83,13 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ error: 'Użytkownik nieaktywny' });
     }
 
-    res.json(result.rows[0]);
+    const user = result.rows[0];
+    res.json({
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name,
+      is_admin: user.is_admin || false
+    });
   } catch (error) {
     console.error('Błąd sprawdzania sesji:', error);
     res.status(500).json({ error: 'Błąd serwera' });

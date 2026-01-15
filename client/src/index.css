@@ -119,6 +119,21 @@ body {
   background: rgba(255,255,255,0.1);
 }
 
+.btn-admin {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.5);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-admin:hover {
+  background: rgba(255,255,255,0.25);
+  border-color: white;
+}
+
 .main {
   padding: 1.5rem 2rem;
 }

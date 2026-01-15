@@ -10,6 +10,14 @@ export interface User {
   id: number;
   username: string;
   display_name: string | null;
+  is_admin: boolean;
+}
+
+export interface CreateUserRequest {
+  username: string;
+  password: string;
+  display_name?: string;
+  is_admin?: boolean;
 }
 
 export interface DateRange {

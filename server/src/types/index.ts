@@ -11,6 +11,7 @@ export interface User {
   username: string;
   display_name: string | null;
   is_active: boolean;
+  is_admin: boolean;
 }
 
 export interface UpdateLineRequest {
@@ -23,5 +24,6 @@ declare module 'express-session' {
   interface SessionData {
     userId: number;
     username: string;
+    isAdmin: boolean;
   }
 }

@@ -7,6 +7,7 @@ import { DateRangePicker } from './components/DateRangePicker';
 import { LineFilter } from './components/LineFilter';
 import { Timeline } from './components/Timeline';
 import { ToastContainer } from './components/Toast';
+import { AdminPanel } from './components/AdminPanel';
 import { useOrders } from './hooks/useOrders';
 import { getDefaultDateRange } from './utils/dates';
 import { DateRange, PRODUCTION_LINES, ProductionLine } from './types';
@@ -19,6 +20,7 @@ function Dashboard() {
   const [selectedLines, setSelectedLines] = useState<Set<ProductionLine>>(
     () => new Set(PRODUCTION_LINES)
   );
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const { data: orders = [], isLoading, error } = useOrders(dateRange);
 
   return (
@@ -26,10 +28,17 @@ function Dashboard() {
       <header className="header">
         <h1>Zlecenia Produkcyjne</h1>
         <div className="header-right">
+          {user?.is_admin && (
+            <button onClick={() => setShowAdminPanel(true)} className="btn-admin">
+              Zarządzaj użytkownikami
+            </button>
+          )}
           <span>Zalogowany: {user?.display_name || user?.username}</span>
           <button onClick={logout} className="btn-logout">Wyloguj</button>
         </div>
       </header>
+
+      {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
 
       <main className="main">
         <div className="controls">
