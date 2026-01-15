@@ -212,6 +212,14 @@
   z-index: 1000;
 }
 
+/* Podświetlenie wszystkich wystąpień tego samego zlecenia */
+.order-block.highlighted {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  filter: brightness(1.1) saturate(1.2);
+  z-index: 100;
+}
+
 .timeline-cell.drop-target {
   background: #e3f2fd;
   outline: 2px dashed #1976d2;

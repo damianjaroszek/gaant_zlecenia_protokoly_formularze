@@ -8,6 +8,8 @@ interface Props {
   order: Order;
   hasCollision: boolean;
   isDragging?: boolean;
+  isHighlighted?: boolean;
+  onHover?: (orderId: number | null) => void;
 }
 
 /**
@@ -57,7 +59,7 @@ function getOrderColor(id: number): { bg: string; border: string; text: string }
   return COLOR_PALETTE[id % COLOR_PALETTE.length];
 }
 
-export function OrderBlock({ order, hasCollision, isDragging = false }: Props) {
+export function OrderBlock({ order, hasCollision, isDragging = false, isHighlighted = false, onHover }: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const blockRef = useRef<HTMLDivElement>(null);
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
@@ -71,6 +73,16 @@ export function OrderBlock({ order, hasCollision, isDragging = false }: Props) {
     backgroundColor: colors.bg,
     borderLeftColor: colors.border,
     color: colors.text,
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    onHover?.(order.id_zlecenia);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    onHover?.(null);
   };
 
   const truncatedOpis = order.opis.length > 30
@@ -109,9 +121,9 @@ export function OrderBlock({ order, hasCollision, isDragging = false }: Props) {
         style={style}
         {...listeners}
         {...restAttributes}
-        className={`order-block ${hasCollision ? 'collision' : ''} ${isDragging ? 'dragging' : ''}`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        className={`order-block ${hasCollision ? 'collision' : ''} ${isDragging ? 'dragging' : ''} ${isHighlighted ? 'highlighted' : ''}`}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <span className="order-id">#{order.id_zlecenia}</span>
         <span className="order-desc">{truncatedOpis}</span>

@@ -26,6 +26,7 @@ interface Props {
 
 export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props) {
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
+  const [hoveredOrderId, setHoveredOrderId] = useState<number | null>(null);
   const updateOrderLine = useUpdateOrderLine();
   const { showToast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -253,6 +254,8 @@ export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props)
                 days={days}
                 ordersByCell={ordersByCell}
                 showLabel={false}
+                hoveredOrderId={hoveredOrderId}
+                onOrderHover={setHoveredOrderId}
               />
             ))}
           </div>

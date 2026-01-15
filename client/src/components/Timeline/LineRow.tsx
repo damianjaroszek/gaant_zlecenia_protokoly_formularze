@@ -6,9 +6,11 @@ interface Props {
   days: string[];
   ordersByCell: Map<string, Order[]>;
   showLabel?: boolean;
+  hoveredOrderId: number | null;
+  onOrderHover: (orderId: number | null) => void;
 }
 
-export function LineRow({ line, days, ordersByCell, showLabel = true }: Props) {
+export function LineRow({ line, days, ordersByCell, showLabel = true, hoveredOrderId, onOrderHover }: Props) {
   return (
     <>
       {showLabel && (
@@ -30,6 +32,8 @@ export function LineRow({ line, days, ordersByCell, showLabel = true }: Props) {
               line={line}
               orders={orders}
               hasCollision={hasCollision}
+              hoveredOrderId={hoveredOrderId}
+              onOrderHover={onOrderHover}
             />
           );
         })

@@ -8,9 +8,11 @@ interface Props {
   line: number;
   orders: Order[];
   hasCollision: boolean;
+  hoveredOrderId: number | null;
+  onOrderHover: (orderId: number | null) => void;
 }
 
-export function ShiftCell({ day, shift, line, orders, hasCollision }: Props) {
+export function ShiftCell({ day, shift, line, orders, hasCollision, hoveredOrderId, onOrderHover }: Props) {
   const { setNodeRef, isOver } = useDroppable({
     id: `cell_${day}_${shift}_${line}`,
   });
@@ -24,7 +26,13 @@ export function ShiftCell({ day, shift, line, orders, hasCollision }: Props) {
       data-line={line}
     >
       {orders.map((order) => (
-        <OrderBlock key={order.id_zlecenia} order={order} hasCollision={hasCollision} />
+        <OrderBlock
+          key={order.id_zlecenia}
+          order={order}
+          hasCollision={hasCollision}
+          isHighlighted={hoveredOrderId === order.id_zlecenia}
+          onHover={onOrderHover}
+        />
       ))}
     </div>
   );
