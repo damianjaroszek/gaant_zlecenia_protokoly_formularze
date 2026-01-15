@@ -4,6 +4,9 @@ import { Order } from '../types/index.js';
 
 const router = Router();
 
+// UWAGA: Ta sama wartość musi być w client/src/components/DateRangePicker.tsx
+const MAX_DAYS = 62;
+
 // GET /api/orders?from=YYYY-MM-DD&to=YYYY-MM-DD
 router.get('/', async (req, res) => {
   const { from, to } = req.query;
@@ -30,10 +33,10 @@ router.get('/', async (req, res) => {
     return res.status(400).json({ error: 'Data początkowa musi być wcześniejsza niż końcowa' });
   }
 
-  // Walidacja maksymalnego zakresu (60 dni)
+  // Walidacja maksymalnego zakresu
   const diffDays = (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24);
-  if (diffDays > 60) {
-    return res.status(400).json({ error: 'Maksymalny zakres to 60 dni' });
+  if (diffDays > MAX_DAYS) {
+    return res.status(400).json({ error: `Maksymalny zakres to ${MAX_DAYS} dni` });
   }
 
   try {

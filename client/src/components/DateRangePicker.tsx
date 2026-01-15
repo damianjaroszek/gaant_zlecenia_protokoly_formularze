@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { DateRange } from '../types';
 
-const MAX_DAYS = 60;
+// UWAGA: Ta sama wartość musi być w server/src/routes/orders.ts
+const MAX_DAYS = 62;
 
 interface Props {
   value: DateRange;

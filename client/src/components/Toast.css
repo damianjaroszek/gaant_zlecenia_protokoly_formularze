@@ -37,6 +37,7 @@
   }
 }
 
+/* Toast colors - keep vibrant for visibility in both modes */
 .toast-success {
   background: #4caf50;
   color: white;
@@ -50,6 +51,19 @@
 .toast-info {
   background: #2196f3;
   color: white;
+}
+
+/* Dark mode - slightly brighter for better visibility */
+[data-theme="dark"] .toast-success {
+  background: #66bb6a;
+}
+
+[data-theme="dark"] .toast-error {
+  background: #ef5350;
+}
+
+[data-theme="dark"] .toast-info {
+  background: #42a5f5;
 }
 
 .toast-icon {
