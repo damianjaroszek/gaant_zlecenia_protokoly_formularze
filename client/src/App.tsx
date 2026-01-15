@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
@@ -13,18 +13,38 @@ import { AdminPanel } from './components/AdminPanel';
 import { ThemeToggle } from './components/ThemeToggle';
 import { useOrders } from './hooks/useOrders';
 import { getDefaultDateRange } from './utils/dates';
-import { DateRange, PRODUCTION_LINES, ProductionLine } from './types';
+import { getProductionLines } from './api/client';
+import { DateRange, ProductionLine } from './types';
 
 const queryClient = new QueryClient();
 
 function Dashboard() {
   const { user, logout } = useAuth();
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange);
-  const [selectedLines, setSelectedLines] = useState<Set<ProductionLine>>(
-    () => new Set(PRODUCTION_LINES)
-  );
+  const [availableLines, setAvailableLines] = useState<number[]>([]);
+  const [selectedLines, setSelectedLines] = useState<Set<ProductionLine>>(new Set());
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [linesLoading, setLinesLoading] = useState(true);
   const { data: orders = [], isLoading, error } = useOrders(dateRange);
+
+  const loadLines = useCallback(async () => {
+    try {
+      setLinesLoading(true);
+      const lines = await getProductionLines();
+      const lineNumbers = lines.map(l => l.line_number);
+      setAvailableLines(lineNumbers);
+      // Zaznacz wszystkie dostępne linie
+      setSelectedLines(new Set(lineNumbers));
+    } catch (err) {
+      console.error('Błąd ładowania linii:', err);
+    } finally {
+      setLinesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLines();
+  }, [loadLines]);
 
   return (
     <div className="dashboard">
@@ -33,7 +53,7 @@ function Dashboard() {
         <div className="header-right">
           {user?.is_admin && (
             <button onClick={() => setShowAdminPanel(true)} className="btn-admin">
-              Zarządzaj użytkownikami
+              Administracja
             </button>
           )}
           <span>Zalogowany: {user?.display_name || user?.username}</span>
@@ -42,12 +62,21 @@ function Dashboard() {
         </div>
       </header>
 
-      {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
+      {showAdminPanel && (
+        <AdminPanel
+          onClose={() => setShowAdminPanel(false)}
+          onLinesChanged={loadLines}
+        />
+      )}
 
       <main className="main">
         <div className="controls">
           <DateRangePicker value={dateRange} onChange={setDateRange} />
-          <LineFilter selectedLines={selectedLines} onChange={setSelectedLines} />
+          <LineFilter
+            selectedLines={selectedLines}
+            availableLines={availableLines}
+            onChange={setSelectedLines}
+          />
           <span className="order-count">Znaleziono: {orders.length} zleceń</span>
         </div>
 
@@ -57,7 +86,17 @@ function Dashboard() {
           </div>
         )}
 
-        <Timeline orders={orders} dateRange={dateRange} isLoading={isLoading} selectedLines={selectedLines} />
+        {linesLoading ? (
+          <div className="timeline-loading">Ładowanie linii...</div>
+        ) : (
+          <Timeline
+            orders={orders}
+            dateRange={dateRange}
+            isLoading={isLoading}
+            selectedLines={selectedLines}
+            availableLines={availableLines}
+          />
+        )}
       </main>
     </div>
   );

@@ -25,8 +25,18 @@ export interface DateRange {
   to: string;
 }
 
-export const PRODUCTION_LINES = [1, 2, 3, 33, 4, 44, 5, 7] as const;
-export type ProductionLine = typeof PRODUCTION_LINES[number];
+// Typ dla linii produkcyjnej z bazy danych
+export interface ProductionLineConfig {
+  id: number;
+  line_number: number;
+  name: string | null;
+  is_active: boolean;
+  display_order: number | null;
+  created_at?: string;
+}
+
+// Typ numeru linii (dynamiczny, oparty na danych z bazy)
+export type ProductionLine = number;
 
 export const SHIFTS = [1, 2, 3] as const;
 export type Shift = typeof SHIFTS[number];

@@ -1,12 +1,13 @@
-import { PRODUCTION_LINES, ProductionLine } from '../types';
+import { ProductionLine } from '../types';
 
 interface Props {
   selectedLines: Set<ProductionLine>;
+  availableLines: number[];
   onChange: (lines: Set<ProductionLine>) => void;
 }
 
-export function LineFilter({ selectedLines, onChange }: Props) {
-  const allSelected = selectedLines.size === PRODUCTION_LINES.length;
+export function LineFilter({ selectedLines, availableLines, onChange }: Props) {
+  const allSelected = selectedLines.size === availableLines.length;
 
   const toggleLine = (line: ProductionLine) => {
     const newSet = new Set(selectedLines);
@@ -24,12 +25,20 @@ export function LineFilter({ selectedLines, onChange }: Props) {
   const toggleAll = () => {
     if (allSelected) {
       // Zostaw tylko pierwszą linię
-      onChange(new Set([PRODUCTION_LINES[0]]));
+      onChange(new Set([availableLines[0]]));
     } else {
       // Zaznacz wszystkie
-      onChange(new Set(PRODUCTION_LINES));
+      onChange(new Set(availableLines));
     }
   };
+
+  if (availableLines.length === 0) {
+    return (
+      <div className="line-filter">
+        <span className="line-filter-label">Brak dostępnych linii</span>
+      </div>
+    );
+  }
 
   return (
     <div className="line-filter">
@@ -41,7 +50,7 @@ export function LineFilter({ selectedLines, onChange }: Props) {
       >
         Wszystkie
       </button>
-      {PRODUCTION_LINES.map((line) => (
+      {availableLines.map((line) => (
         <button
           key={line}
           className={`line-filter-btn line-${line} ${selectedLines.has(line) ? 'active' : ''}`}

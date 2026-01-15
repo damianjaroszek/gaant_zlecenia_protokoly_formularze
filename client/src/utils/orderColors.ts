@@ -1,4 +1,4 @@
-import { Order, PRODUCTION_LINES } from '../types';
+import { Order } from '../types';
 
 /**
  * Paleta 12 kolorów z MAKSYMALNYM kontrastem percepcyjnym.
@@ -25,12 +25,22 @@ export const COLOR_PALETTE = [
 export type OrderColor = (typeof COLOR_PALETTE)[number];
 
 /**
- * Mapa linii produkcyjnej do pozycji wizualnej (indeks wiersza).
+ * Buduje mapę linii produkcyjnej do pozycji wizualnej dynamicznie na podstawie zleceń.
  */
-const lineToVisualIndex = new Map<number, number>();
-PRODUCTION_LINES.forEach((line, index) => {
-  lineToVisualIndex.set(line, index);
-});
+function buildLineToVisualIndex(orders: Order[]): Map<number, number> {
+  const uniqueLines = new Set<number>();
+  for (const order of orders) {
+    if (order.liniapm !== null) {
+      uniqueLines.add(order.liniapm);
+    }
+  }
+  const sortedLines = [...uniqueLines].sort((a, b) => a - b);
+  const lineToVisualIndex = new Map<number, number>();
+  sortedLines.forEach((line, index) => {
+    lineToVisualIndex.set(line, index);
+  });
+  return lineToVisualIndex;
+}
 
 function normalizeDate(isoDate: string): string {
   const date = new Date(isoDate);
@@ -51,7 +61,8 @@ function getGridPosition(
   date: string,
   shift: number,
   line: number,
-  baseDayIndex: number
+  baseDayIndex: number,
+  lineToVisualIndex: Map<number, number>
 ): { x: number; y: number } | null {
   const lineIndex = lineToVisualIndex.get(line);
   if (lineIndex === undefined) return null;
@@ -93,6 +104,9 @@ export function assignOrderColors(orders: Order[]): Map<number, number> {
     return colorAssignments;
   }
 
+  // Zbuduj mapę linii do indeksów wizualnych
+  const lineToVisualIndex = buildLineToVisualIndex(orders);
+
   // Znajdź najwcześniejszą datę jako bazę
   let minDayIndex = Infinity;
   for (const order of orders) {
@@ -109,7 +123,7 @@ export function assignOrderColors(orders: Order[]): Map<number, number> {
     }
 
     const date = normalizeDate(order.data_realizacji);
-    const position = getGridPosition(date, order.zmiana, order.liniapm, minDayIndex);
+    const position = getGridPosition(date, order.zmiana, order.liniapm, minDayIndex, lineToVisualIndex);
     if (position) {
       ordersWithPositions.push({ order, position, colorIndex: -1 });
     }

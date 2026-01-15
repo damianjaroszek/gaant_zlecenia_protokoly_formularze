@@ -40,6 +40,16 @@ router.get('/', async (req, res) => {
   }
 
   try {
+    // Pobierz aktywne linie z bazy danych
+    const linesResult = await pool.query(
+      'SELECT line_number FROM app_produkcja.production_lines WHERE is_active = true'
+    );
+    const activeLines = linesResult.rows.map(r => r.line_number);
+
+    if (activeLines.length === 0) {
+      return res.json([]);
+    }
+
     const query = `
       SELECT
         g.datasql(kp.data) as data_realizacji,
@@ -63,11 +73,12 @@ router.get('/', async (req, res) => {
           ON linianew.id_zrodla1 = z.id AND linianew.rodzajzrodla = 3
       ) x ON x.id = kp.id_zlecenia
       WHERE kp.data BETWEEN g.sqldata($1) AND g.sqldata($2)
+        AND x.liniapm = ANY($3::int[])
       GROUP BY kp.data, kp.id_zlecenia, kp.zmiana, x.liniapm, mzkz.opis
       ORDER BY kp.data, kp.zmiana, x.liniapm
     `;
 
-    const result = await pool.query<Order>(query, [from, to]);
+    const result = await pool.query<Order>(query, [from, to, activeLines]);
     res.json(result.rows);
   } catch (error) {
     console.error('Błąd pobierania zleceń:', error);
@@ -84,12 +95,16 @@ router.patch('/:id', async (req, res) => {
     return res.status(400).json({ error: 'Wymagane pole: new_line' });
   }
 
-  const validLines = [1, 2, 3, 33, 4, 44, 5, 7];
-  if (!validLines.includes(new_line)) {
-    return res.status(400).json({ error: 'Nieprawidłowa linia produkcyjna' });
-  }
-
   try {
+    // Pobierz aktywne linie z bazy danych
+    const linesResult = await pool.query(
+      'SELECT line_number FROM app_produkcja.production_lines WHERE is_active = true'
+    );
+    const validLines = linesResult.rows.map(r => r.line_number);
+
+    if (!validLines.includes(new_line)) {
+      return res.status(400).json({ error: 'Nieprawidłowa linia produkcyjna' });
+    }
     // Najpierw próba UPDATE
     const updateQuery = `
       UPDATE g.mzk_protokoly_poz

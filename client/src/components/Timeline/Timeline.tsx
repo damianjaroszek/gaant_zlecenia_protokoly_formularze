@@ -9,7 +9,7 @@ import {
   useSensors,
   pointerWithin,
 } from '@dnd-kit/core';
-import { Order, PRODUCTION_LINES, ProductionLine, SHIFTS } from '../../types';
+import { Order, ProductionLine, SHIFTS } from '../../types';
 import { getDaysInRange, formatDisplayDate } from '../../utils/dates';
 import { assignOrderColors } from '../../utils/orderColors';
 import { useUpdateOrderLine } from '../../hooks/useOrders';
@@ -23,9 +23,10 @@ interface Props {
   dateRange: { from: string; to: string };
   isLoading: boolean;
   selectedLines: Set<ProductionLine>;
+  availableLines: number[];
 }
 
-export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props) {
+export function Timeline({ orders, dateRange, isLoading, selectedLines, availableLines }: Props) {
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [hoveredOrderId, setHoveredOrderId] = useState<number | null>(null);
   const updateOrderLine = useUpdateOrderLine();
@@ -52,8 +53,8 @@ export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props)
 
   // Filtruj linie na podstawie wyboru użytkownika
   const visibleLines = useMemo(
-    () => PRODUCTION_LINES.filter((line) => selectedLines.has(line)),
-    [selectedLines]
+    () => availableLines.filter((line) => selectedLines.has(line)),
+    [selectedLines, availableLines]
   );
 
   // Normalizuj datę z ISO do YYYY-MM-DD w lokalnej strefie czasowej

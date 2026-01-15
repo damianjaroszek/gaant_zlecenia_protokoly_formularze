@@ -1,4 +1,4 @@
-import { Order, User, DateRange, CreateUserRequest } from '../types';
+import { Order, User, DateRange, CreateUserRequest, ProductionLineConfig } from '../types';
 
 // Typ użytkownika z dodatkowymi polami dla admina
 export interface AdminUser extends User {
@@ -83,5 +83,37 @@ export async function updateUser(
   return fetchApi<AdminUser>(`/admin/users/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
+  });
+}
+
+// Production Lines
+export async function getProductionLines(): Promise<ProductionLineConfig[]> {
+  return fetchApi<ProductionLineConfig[]>('/settings/lines');
+}
+
+export async function getAllLines(): Promise<ProductionLineConfig[]> {
+  return fetchApi<ProductionLineConfig[]>('/admin/lines');
+}
+
+export async function createLine(data: { line_number: number; name?: string }): Promise<ProductionLineConfig> {
+  return fetchApi<ProductionLineConfig>('/admin/lines', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateLine(
+  id: number,
+  data: { is_active?: boolean; name?: string; display_order?: number }
+): Promise<ProductionLineConfig> {
+  return fetchApi<ProductionLineConfig>(`/admin/lines/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteLine(id: number): Promise<{ success: boolean }> {
+  return fetchApi<{ success: boolean }>(`/admin/lines/${id}`, {
+    method: 'DELETE',
   });
 }

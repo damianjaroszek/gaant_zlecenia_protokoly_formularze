@@ -9,6 +9,7 @@ import { pool } from './config/db.js';
 import authRoutes from './routes/auth.js';
 import ordersRoutes from './routes/orders.js';
 import adminRoutes from './routes/admin.js';
+import settingsRoutes from './routes/settings.js';
 import { requireAuth, requireAdmin } from './middleware/auth.js';
 
 dotenv.config();
@@ -55,6 +56,7 @@ app.use(session({
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/orders', requireAuth, ordersRoutes);
 app.use('/api/admin', requireAdmin, adminRoutes);
 

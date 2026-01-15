@@ -119,4 +119,131 @@ router.patch('/users/:id', async (req, res) => {
   }
 });
 
+// ==================== LINIE PRODUKCYJNE ====================
+
+// GET /api/admin/lines - pobierz wszystkie linie (do zarządzania)
+router.get('/lines', async (req, res) => {
+  try {
+    const query = `
+      SELECT id, line_number, name, is_active, display_order, created_at
+      FROM app_produkcja.production_lines
+      ORDER BY display_order, line_number
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Błąd pobierania linii:', error);
+    res.status(500).json({ error: 'Błąd serwera' });
+  }
+});
+
+// POST /api/admin/lines - dodaj nową linię
+router.post('/lines', async (req, res) => {
+  const { line_number, name } = req.body;
+
+  if (!line_number || typeof line_number !== 'number') {
+    return res.status(400).json({ error: 'Wymagane: line_number (liczba)' });
+  }
+
+  if (line_number < 1 || line_number > 999) {
+    return res.status(400).json({ error: 'Numer linii musi być między 1 a 999' });
+  }
+
+  try {
+    // Pobierz najwyższy display_order
+    const maxOrderResult = await pool.query(
+      'SELECT COALESCE(MAX(display_order), 0) + 1 as next_order FROM app_produkcja.production_lines'
+    );
+    const nextOrder = maxOrderResult.rows[0].next_order;
+
+    const insertQuery = `
+      INSERT INTO app_produkcja.production_lines (line_number, name, is_active, display_order)
+      VALUES ($1, $2, true, $3)
+      RETURNING id, line_number, name, is_active, display_order, created_at
+    `;
+    const result = await pool.query(insertQuery, [
+      line_number,
+      name || `Linia ${line_number}`,
+      nextOrder
+    ]);
+
+    res.status(201).json(result.rows[0]);
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
+      return res.status(409).json({ error: 'Linia o tym numerze już istnieje' });
+    }
+    console.error('Błąd dodawania linii:', error);
+    res.status(500).json({ error: 'Błąd serwera' });
+  }
+});
+
+// PATCH /api/admin/lines/:id - aktualizuj linię
+router.patch('/lines/:id', async (req, res) => {
+  const { id } = req.params;
+  const { is_active, name, display_order } = req.body;
+
+  try {
+    const updates: string[] = [];
+    const values: (boolean | string | number)[] = [];
+    let paramIndex = 1;
+
+    if (typeof is_active === 'boolean') {
+      updates.push(`is_active = $${paramIndex++}`);
+      values.push(is_active);
+    }
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+    if (typeof display_order === 'number') {
+      updates.push(`display_order = $${paramIndex++}`);
+      values.push(display_order);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Brak pól do aktualizacji' });
+    }
+
+    values.push(Number(id));
+    const query = `
+      UPDATE app_produkcja.production_lines
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING id, line_number, name, is_active, display_order, created_at
+    `;
+
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Linia nie znaleziona' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Błąd aktualizacji linii:', error);
+    res.status(500).json({ error: 'Błąd serwera' });
+  }
+});
+
+// DELETE /api/admin/lines/:id - usuń linię
+router.delete('/lines/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM app_produkcja.production_lines WHERE id = $1 RETURNING id',
+      [Number(id)]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Linia nie znaleziona' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Błąd usuwania linii:', error);
+    res.status(500).json({ error: 'Błąd serwera' });
+  }
+});
+
 export default router;
