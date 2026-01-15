@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import { LoginForm } from './components/LoginForm';
 import { DateRangePicker } from './components/DateRangePicker';
 import { LineFilter } from './components/LineFilter';
 import { Timeline } from './components/Timeline';
+import { ToastContainer } from './components/Toast';
 import { useOrders } from './hooks/useOrders';
 import { getDefaultDateRange } from './utils/dates';
 import { DateRange, PRODUCTION_LINES, ProductionLine } from './types';
@@ -66,7 +68,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AppContent />
+        <ToastProvider>
+          <AppContent />
+          <ToastContainer />
+        </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

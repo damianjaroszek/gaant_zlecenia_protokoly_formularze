@@ -12,6 +12,7 @@ import {
 import { Order, PRODUCTION_LINES, ProductionLine, SHIFTS } from '../../types';
 import { getDaysInRange, formatDisplayDate } from '../../utils/dates';
 import { useUpdateOrderLine } from '../../hooks/useOrders';
+import { useToast } from '../../context/ToastContext';
 import { LineRow } from './LineRow';
 import { OrderBlock } from './OrderBlock';
 import './Timeline.css';
@@ -26,6 +27,7 @@ interface Props {
 export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props) {
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const updateOrderLine = useUpdateOrderLine();
+  const { showToast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const savedScrollLeft = useRef(0);
 
@@ -165,10 +167,20 @@ export function Timeline({ orders, dateRange, isLoading, selectedLines }: Props)
     blockScrollFor(500);
 
     console.log('Updating order:', order.id_zlecenia, 'to line:', newLine);
-    updateOrderLine.mutate({
-      id_zlecenia: order.id_zlecenia,
-      new_line: Number(newLine),
-    });
+    updateOrderLine.mutate(
+      {
+        id_zlecenia: order.id_zlecenia,
+        new_line: Number(newLine),
+      },
+      {
+        onSuccess: () => {
+          showToast(`Zlecenie #${order.id_zlecenia} przeniesione na linię ${newLine}`, 'success');
+        },
+        onError: (error) => {
+          showToast(`Błąd: ${error.message}`, 'error');
+        },
+      }
+    );
   };
 
   if (isLoading) {
