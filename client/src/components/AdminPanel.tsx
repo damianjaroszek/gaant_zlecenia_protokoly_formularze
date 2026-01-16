@@ -162,6 +162,64 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
     }
   };
 
+  const handleMoveLineUp = async (line: ProductionLineConfig) => {
+    const sortedLines = [...lines].sort((a, b) =>
+      (a.display_order ?? 999) - (b.display_order ?? 999)
+    );
+    const currentIndex = sortedLines.findIndex(l => l.id === line.id);
+
+    if (currentIndex <= 0) return;
+
+    const lineAbove = sortedLines[currentIndex - 1];
+    const currentOrder = line.display_order ?? currentIndex + 1;
+    const aboveOrder = lineAbove.display_order ?? currentIndex;
+
+    try {
+      const [updatedCurrent, updatedAbove] = await Promise.all([
+        updateLine(line.id, { display_order: aboveOrder }),
+        updateLine(lineAbove.id, { display_order: currentOrder }),
+      ]);
+
+      setLines(lines.map(l => {
+        if (l.id === line.id) return updatedCurrent;
+        if (l.id === lineAbove.id) return updatedAbove;
+        return l;
+      }));
+      onLinesChanged?.();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Błąd zmiany kolejności', 'error');
+    }
+  };
+
+  const handleMoveLineDown = async (line: ProductionLineConfig) => {
+    const sortedLines = [...lines].sort((a, b) =>
+      (a.display_order ?? 999) - (b.display_order ?? 999)
+    );
+    const currentIndex = sortedLines.findIndex(l => l.id === line.id);
+
+    if (currentIndex < 0 || currentIndex >= sortedLines.length - 1) return;
+
+    const lineBelow = sortedLines[currentIndex + 1];
+    const currentOrder = line.display_order ?? currentIndex + 1;
+    const belowOrder = lineBelow.display_order ?? currentIndex + 2;
+
+    try {
+      const [updatedCurrent, updatedBelow] = await Promise.all([
+        updateLine(line.id, { display_order: belowOrder }),
+        updateLine(lineBelow.id, { display_order: currentOrder }),
+      ]);
+
+      setLines(lines.map(l => {
+        if (l.id === line.id) return updatedCurrent;
+        if (l.id === lineBelow.id) return updatedBelow;
+        return l;
+      }));
+      onLinesChanged?.();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Błąd zmiany kolejności', 'error');
+    }
+  };
+
   const handleToggleActive = async (user: AdminUser) => {
     try {
       const updated = await updateUser(user.id, { is_active: !user.is_active });
@@ -316,97 +374,123 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
     </>
   );
 
-  const renderLinesTab = () => (
-    <>
-      <div className="admin-toolbar">
-        <button
-          className="btn-add-user"
-          onClick={() => setShowLineForm(!showLineForm)}
-        >
-          {showLineForm ? 'Anuluj' : '+ Nowa linia'}
-        </button>
-      </div>
+  const renderLinesTab = () => {
+    const sortedLines = [...lines].sort((a, b) =>
+      (a.display_order ?? 999) - (b.display_order ?? 999)
+    );
 
-      {showLineForm && (
-        <form className="user-form" onSubmit={handleLineSubmit}>
-          <h3>Nowa linia produkcyjna</h3>
-          {lineFormError && <div className="form-error">{lineFormError}</div>}
+    return (
+      <>
+        <div className="admin-toolbar">
+          <button
+            className="btn-add-user"
+            onClick={() => setShowLineForm(!showLineForm)}
+          >
+            {showLineForm ? 'Anuluj' : '+ Nowa linia'}
+          </button>
+        </div>
 
-          <div className="form-row">
-            <label>
-              Numer linii *
-              <input
-                type="number"
-                value={lineFormData.line_number}
-                onChange={e => setLineFormData({...lineFormData, line_number: e.target.value})}
-                required
-                min={1}
-                max={999}
-                autoFocus
-              />
-            </label>
-            <label>
-              Nazwa (opcjonalna)
-              <input
-                type="text"
-                value={lineFormData.name}
-                onChange={e => setLineFormData({...lineFormData, name: e.target.value})}
-                placeholder="np. Linia pakowania"
-              />
-            </label>
-          </div>
+        {showLineForm && (
+          <form className="user-form" onSubmit={handleLineSubmit}>
+            <h3>Nowa linia produkcyjna</h3>
+            {lineFormError && <div className="form-error">{lineFormError}</div>}
 
-          <div className="form-actions">
-            <button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Dodawanie...' : 'Dodaj linię'}
-            </button>
-          </div>
-        </form>
-      )}
+            <div className="form-row">
+              <label>
+                Numer linii *
+                <input
+                  type="number"
+                  value={lineFormData.line_number}
+                  onChange={e => setLineFormData({...lineFormData, line_number: e.target.value})}
+                  required
+                  min={1}
+                  max={999}
+                  autoFocus
+                />
+              </label>
+              <label>
+                Nazwa (opcjonalna)
+                <input
+                  type="text"
+                  value={lineFormData.name}
+                  onChange={e => setLineFormData({...lineFormData, name: e.target.value})}
+                  placeholder="np. Linia pakowania"
+                />
+              </label>
+            </div>
 
-      <table className="users-table">
-        <thead>
-          <tr>
-            <th>Numer</th>
-            <th>Nazwa</th>
-            <th>Aktywna</th>
-            <th>Kolejność</th>
-            <th>Akcje</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map(line => (
-            <tr key={line.id} className={!line.is_active ? 'inactive' : ''}>
-              <td><strong>{line.line_number}</strong></td>
-              <td>{line.name || '-'}</td>
-              <td>
-                <span className={`badge ${line.is_active ? 'badge-active' : 'badge-inactive'}`}>
-                  {line.is_active ? 'Tak' : 'Nie'}
-                </span>
-              </td>
-              <td>{line.display_order || '-'}</td>
-              <td className="actions">
-                <button
-                  className="btn-action"
-                  onClick={() => handleToggleLineActive(line)}
-                  title={line.is_active ? 'Wyłącz linię' : 'Włącz linię'}
-                >
-                  {line.is_active ? 'Wyłącz' : 'Włącz'}
-                </button>
-                <button
-                  className="btn-action btn-delete"
-                  onClick={() => handleDeleteLine(line)}
-                  title="Usuń linię"
-                >
-                  Usuń
-                </button>
-              </td>
+            <div className="form-actions">
+              <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Dodawanie...' : 'Dodaj linię'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Numer</th>
+              <th>Nazwa</th>
+              <th>Aktywna</th>
+              <th>Kolejność</th>
+              <th>Akcje</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </>
-  );
+          </thead>
+          <tbody>
+            {sortedLines.map((line, index) => (
+              <tr key={line.id} className={!line.is_active ? 'inactive' : ''}>
+                <td><strong>{line.line_number}</strong></td>
+                <td>{line.name || '-'}</td>
+                <td>
+                  <span className={`badge ${line.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                    {line.is_active ? 'Tak' : 'Nie'}
+                  </span>
+                </td>
+                <td className="order-cell">
+                  <div className="order-controls">
+                    <button
+                      className="btn-order"
+                      onClick={() => handleMoveLineUp(line)}
+                      disabled={index === 0}
+                      title="Przesuń w górę"
+                    >
+                      ▲
+                    </button>
+                    <span className="order-value">{line.display_order ?? '-'}</span>
+                    <button
+                      className="btn-order"
+                      onClick={() => handleMoveLineDown(line)}
+                      disabled={index === sortedLines.length - 1}
+                      title="Przesuń w dół"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                </td>
+                <td className="actions">
+                  <button
+                    className="btn-action"
+                    onClick={() => handleToggleLineActive(line)}
+                    title={line.is_active ? 'Wyłącz linię' : 'Włącz linię'}
+                  >
+                    {line.is_active ? 'Wyłącz' : 'Włącz'}
+                  </button>
+                  <button
+                    className="btn-action btn-delete"
+                    onClick={() => handleDeleteLine(line)}
+                    title="Usuń linię"
+                  >
+                    Usuń
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
+    );
+  };
 
   return (
     <div className="admin-overlay" onClick={onClose}>

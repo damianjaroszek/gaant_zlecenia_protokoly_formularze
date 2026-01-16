@@ -320,3 +320,42 @@
   color: var(--color-text-primary);
   width: 100%;
 }
+
+/* Kontrolki kolejności linii */
+.order-cell {
+  width: 100px;
+}
+
+.order-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.order-value {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.btn-order {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--color-text-primary);
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.btn-order:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  border-color: var(--color-brand-primary);
+}
+
+.btn-order:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
