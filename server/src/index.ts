@@ -11,6 +11,7 @@ import ordersRoutes from './routes/orders.js';
 import adminRoutes from './routes/admin.js';
 import settingsRoutes from './routes/settings.js';
 import { requireAuth, requireAdmin } from './middleware/auth.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
 
@@ -62,9 +63,15 @@ app.use('/api/orders', requireAuth, ordersRoutes);
 app.use('/api/admin', requireAdmin, adminRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// 404 handler for undefined routes
+app.use(notFoundHandler);
+
+// Global error handler (must be last)
+app.use(errorHandler);
 
 // Start serwera
 app.listen(PORT, () => {
