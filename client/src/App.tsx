@@ -42,9 +42,10 @@ function Dashboard() {
     }
   }, []);
 
+  // Ładuj linie przy każdej zmianie użytkownika (np. po zalogowaniu)
   useEffect(() => {
     loadLines();
-  }, [loadLines]);
+  }, [loadLines, user?.id]);
 
   return (
     <div className="dashboard">

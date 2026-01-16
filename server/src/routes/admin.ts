@@ -287,4 +287,79 @@ router.delete('/lines/:id', async (req, res) => {
   }
 });
 
+// ==================== UPRAWNIENIA DO LINII ====================
+
+// GET /api/admin/users/:id/lines - pobierz linie przypisane do użytkownika
+router.get('/users/:id/lines', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const query = `
+      SELECT pl.id, pl.line_number, pl.name
+      FROM app_produkcja.user_line_access ula
+      JOIN app_produkcja.production_lines pl ON ula.line_id = pl.id
+      WHERE ula.user_id = $1
+      ORDER BY pl.display_order, pl.line_number
+    `;
+    const result = await pool.query(query, [Number(id)]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Błąd pobierania linii użytkownika:', error);
+    res.status(500).json({ error: 'Błąd serwera' });
+  }
+});
+
+// PUT /api/admin/users/:id/lines - ustaw linie dla użytkownika (zastępuje wszystkie)
+router.put('/users/:id/lines', async (req, res) => {
+  const { id } = req.params;
+  const { line_ids } = req.body;
+
+  if (!Array.isArray(line_ids)) {
+    return res.status(400).json({ error: 'Wymagane: line_ids (tablica)' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Usuń wszystkie obecne przypisania
+    await client.query(
+      'DELETE FROM app_produkcja.user_line_access WHERE user_id = $1',
+      [Number(id)]
+    );
+
+    // Dodaj nowe przypisania
+    if (line_ids.length > 0) {
+      const values = line_ids.map((_: number, index: number) =>
+        `($1, $${index + 2})`
+      ).join(', ');
+
+      await client.query(
+        `INSERT INTO app_produkcja.user_line_access (user_id, line_id) VALUES ${values}`,
+        [Number(id), ...line_ids]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    // Pobierz zaktualizowaną listę
+    const result = await client.query(`
+      SELECT pl.id, pl.line_number, pl.name
+      FROM app_produkcja.user_line_access ula
+      JOIN app_produkcja.production_lines pl ON ula.line_id = pl.id
+      WHERE ula.user_id = $1
+      ORDER BY pl.display_order, pl.line_number
+    `, [Number(id)]);
+
+    res.json(result.rows);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Błąd aktualizacji linii użytkownika:', error);
+    res.status(500).json({ error: 'Błąd serwera' });
+  } finally {
+    client.release();
+  }
+});
+
 export default router;

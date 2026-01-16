@@ -5,6 +5,8 @@ import {
   createUser,
   updateUser,
   resetUserPassword,
+  getUserLines,
+  setUserLines,
   getAllLines,
   createLine,
   updateLine,
@@ -52,6 +54,11 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
   const [resetPasswordUser, setResetPasswordUser] = useState<AdminUser | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetPasswordError, setResetPasswordError] = useState('');
+
+  // Uprawnienia do linii
+  const [lineAccessUser, setLineAccessUser] = useState<AdminUser | null>(null);
+  const [selectedLineIds, setSelectedLineIds] = useState<Set<number>>(new Set());
+  const [isLoadingLineAccess, setIsLoadingLineAccess] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'users') {
@@ -279,6 +286,55 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
     });
   };
 
+  const handleOpenLineAccess = async (user: AdminUser) => {
+    setLineAccessUser(user);
+    setIsLoadingLineAccess(true);
+
+    try {
+      // Ładuj linie jeśli jeszcze nie załadowane
+      if (lines.length === 0) {
+        const allLines = await getAllLines();
+        setLines(allLines);
+      }
+
+      // Pobierz aktualne uprawnienia użytkownika
+      const userLines = await getUserLines(user.id);
+      setSelectedLineIds(new Set(userLines.map(l => l.id)));
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Błąd ładowania uprawnień', 'error');
+      setLineAccessUser(null);
+    } finally {
+      setIsLoadingLineAccess(false);
+    }
+  };
+
+  const handleToggleLineAccess = (lineId: number) => {
+    setSelectedLineIds(prev => {
+      const next = new Set(prev);
+      if (next.has(lineId)) {
+        next.delete(lineId);
+      } else {
+        next.add(lineId);
+      }
+      return next;
+    });
+  };
+
+  const handleSaveLineAccess = async () => {
+    if (!lineAccessUser) return;
+
+    setIsSubmitting(true);
+    try {
+      await setUserLines(lineAccessUser.id, Array.from(selectedLineIds));
+      showToast(`Uprawnienia użytkownika "${lineAccessUser.username}" zostały zapisane`, 'success');
+      setLineAccessUser(null);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Błąd zapisywania uprawnień', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const renderUsersTab = () => (
     <>
       <div className="admin-toolbar">
@@ -402,6 +458,15 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
                 >
                   Resetuj hasło
                 </button>
+                {!user.is_admin && (
+                  <button
+                    className="btn-action btn-line-access"
+                    onClick={() => handleOpenLineAccess(user)}
+                    title="Zarządzaj dostępem do linii"
+                  >
+                    Linie
+                  </button>
+                )}
               </td>
             </tr>
           ))}
@@ -441,6 +506,54 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {lineAccessUser && (
+        <div className="modal-overlay" onClick={() => setLineAccessUser(null)}>
+          <div className="modal-content modal-line-access" onClick={e => e.stopPropagation()}>
+            <h3>Dostęp do linii: {lineAccessUser.username}</h3>
+            {isLoadingLineAccess ? (
+              <div className="admin-loading">Ładowanie...</div>
+            ) : (
+              <>
+                <p className="modal-hint">Zaznacz linie, do których użytkownik ma mieć dostęp:</p>
+                <div className="line-access-grid">
+                  {[...lines]
+                    .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999))
+                    .map(line => (
+                      <label key={line.id} className="line-access-item">
+                        <input
+                          type="checkbox"
+                          checked={selectedLineIds.has(line.id)}
+                          onChange={() => handleToggleLineAccess(line.id)}
+                        />
+                        <span className="line-access-label">
+                          <strong>{line.line_number}</strong>
+                          {line.name && <span className="line-name">{line.name}</span>}
+                        </span>
+                      </label>
+                    ))}
+                </div>
+                <div className="form-actions modal-actions">
+                  <button
+                    type="button"
+                    className="btn-cancel"
+                    onClick={() => setLineAccessUser(null)}
+                  >
+                    Anuluj
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveLineAccess}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Zapisywanie...' : 'Zapisz uprawnienia'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

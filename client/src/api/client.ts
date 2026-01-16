@@ -127,3 +127,21 @@ export async function deleteLine(id: number): Promise<{ success: boolean }> {
     method: 'DELETE',
   });
 }
+
+// User Line Access
+export interface UserLineAccess {
+  id: number;
+  line_number: number;
+  name: string | null;
+}
+
+export async function getUserLines(userId: number): Promise<UserLineAccess[]> {
+  return fetchApi<UserLineAccess[]>(`/admin/users/${userId}/lines`);
+}
+
+export async function setUserLines(userId: number, lineIds: number[]): Promise<UserLineAccess[]> {
+  return fetchApi<UserLineAccess[]>(`/admin/users/${userId}/lines`, {
+    method: 'PUT',
+    body: JSON.stringify({ line_ids: lineIds }),
+  });
+}
