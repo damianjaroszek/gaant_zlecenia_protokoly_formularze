@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import { pool } from '../config/db.js';
+import { validatePassword } from '../utils/validation.js';
 
 const router = Router();
 
@@ -32,8 +33,9 @@ router.post('/users', async (req, res) => {
     return res.status(400).json({ error: 'Login musi mieć minimum 3 znaki' });
   }
 
-  if (password.length < 4) {
-    return res.status(400).json({ error: 'Hasło musi mieć minimum 4 znaki' });
+  const passwordValidation = validatePassword(password);
+  if (!passwordValidation.isValid) {
+    return res.status(400).json({ error: passwordValidation.error });
   }
 
   try {
@@ -128,8 +130,9 @@ router.post('/users/:id/reset-password', async (req, res) => {
     return res.status(400).json({ error: 'Wymagane: new_password' });
   }
 
-  if (new_password.length < 4) {
-    return res.status(400).json({ error: 'Hasło musi mieć minimum 4 znaki' });
+  const passwordValidation = validatePassword(new_password);
+  if (!passwordValidation.isValid) {
+    return res.status(400).json({ error: passwordValidation.error });
   }
 
   try {

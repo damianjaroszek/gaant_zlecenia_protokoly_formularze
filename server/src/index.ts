@@ -48,15 +48,16 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // true dla HTTPS w produkcji
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
+    sameSite: 'lax', // Ochrona przed CSRF
     maxAge: 8 * 60 * 60 * 1000 // 8 godzin (zmiana robocza)
   }
 }));
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/settings', settingsRoutes);
+app.use('/api/settings', requireAuth, settingsRoutes);
 app.use('/api/orders', requireAuth, ordersRoutes);
 app.use('/api/admin', requireAdmin, adminRoutes);
 

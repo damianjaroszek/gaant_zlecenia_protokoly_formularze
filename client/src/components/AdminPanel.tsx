@@ -14,6 +14,7 @@ import {
 } from '../api/client';
 import { ProductionLineConfig } from '../types';
 import { useToast } from '../context/ToastContext';
+import { validatePassword, getPasswordRequirements } from '../utils/validation';
 import './AdminPanel.css';
 
 type TabType = 'users' | 'lines';
@@ -97,6 +98,14 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setFormError('');
+
+    // Client-side password validation
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      setFormError(passwordValidation.error || 'Nieprawidłowe hasło');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -264,6 +273,14 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
     if (!resetPasswordUser) return;
 
     setResetPasswordError('');
+
+    // Client-side password validation
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      setResetPasswordError(passwordValidation.error || 'Nieprawidłowe hasło');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -370,7 +387,8 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
                 value={formData.password}
                 onChange={e => setFormData({...formData, password: e.target.value})}
                 required
-                minLength={4}
+                minLength={8}
+                placeholder={getPasswordRequirements()}
               />
             </label>
           </div>
@@ -487,9 +505,9 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
                     required
-                    minLength={4}
+                    minLength={8}
                     autoFocus
-                    placeholder="Minimum 4 znaki"
+                    placeholder={getPasswordRequirements()}
                   />
                 </label>
               </div>

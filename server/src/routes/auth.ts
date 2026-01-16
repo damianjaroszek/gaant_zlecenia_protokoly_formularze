@@ -6,6 +6,10 @@ import { User } from '../types/index.js';
 
 const router = Router();
 
+// Dummy hash for constant-time comparison (prevents timing attacks)
+// Generated with bcrypt.hashSync('dummy', 10)
+const DUMMY_HASH = '$2b$10$dummyhashfordummypasswordcomparison1234';
+
 // Rate limiting dla logowania - max 5 prób na 15 minut
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minut
@@ -31,19 +35,20 @@ router.post('/login', loginLimiter, async (req, res) => {
     `;
     const result = await pool.query(query, [username]);
 
-    if (result.rows.length === 0) {
+    const user = result.rows[0] || null;
+
+    // Always perform bcrypt comparison to prevent timing attacks
+    // Even if user doesn't exist, we compare against dummy hash
+    const hashToCompare = user?.password_hash || DUMMY_HASH;
+    const validPassword = await bcrypt.compare(password, hashToCompare);
+
+    // Check all conditions after constant-time comparison
+    if (!user || !validPassword) {
       return res.status(401).json({ error: 'Nieprawidłowy login lub hasło' });
     }
-
-    const user = result.rows[0];
 
     if (!user.is_active) {
       return res.status(401).json({ error: 'Konto nieaktywne' });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password_hash);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Nieprawidłowy login lub hasło' });
     }
 
     // Zapisz sesję
