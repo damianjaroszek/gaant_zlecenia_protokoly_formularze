@@ -4,6 +4,7 @@ import {
   getUsers,
   createUser,
   updateUser,
+  resetUserPassword,
   getAllLines,
   createLine,
   updateLine,
@@ -46,6 +47,11 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
     name: '',
   });
   const [lineFormError, setLineFormError] = useState('');
+
+  // Reset hasła
+  const [resetPasswordUser, setResetPasswordUser] = useState<AdminUser | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetPasswordError, setResetPasswordError] = useState('');
 
   useEffect(() => {
     if (activeTab === 'users') {
@@ -246,6 +252,25 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
     }
   };
 
+  const handleResetPassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!resetPasswordUser) return;
+
+    setResetPasswordError('');
+    setIsSubmitting(true);
+
+    try {
+      await resetUserPassword(resetPasswordUser.id, newPassword);
+      showToast(`Hasło użytkownika "${resetPasswordUser.username}" zostało zresetowane`, 'success');
+      setResetPasswordUser(null);
+      setNewPassword('');
+    } catch (err) {
+      setResetPasswordError(err instanceof Error ? err.message : 'Błąd resetowania hasła');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('pl-PL', {
       day: '2-digit',
@@ -366,11 +391,59 @@ export function AdminPanel({ onClose, onLinesChanged }: Props) {
                 >
                   {user.is_active ? 'Dezaktywuj' : 'Aktywuj'}
                 </button>
+                <button
+                  className="btn-action btn-reset-password"
+                  onClick={() => {
+                    setResetPasswordUser(user);
+                    setNewPassword('');
+                    setResetPasswordError('');
+                  }}
+                  title="Resetuj hasło"
+                >
+                  Resetuj hasło
+                </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {resetPasswordUser && (
+        <div className="modal-overlay" onClick={() => setResetPasswordUser(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h3>Resetuj hasło: {resetPasswordUser.username}</h3>
+            <form onSubmit={handleResetPassword}>
+              {resetPasswordError && <div className="form-error">{resetPasswordError}</div>}
+              <div className="form-row">
+                <label>
+                  Nowe hasło *
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    required
+                    minLength={4}
+                    autoFocus
+                    placeholder="Minimum 4 znaki"
+                  />
+                </label>
+              </div>
+              <div className="form-actions modal-actions">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setResetPasswordUser(null)}
+                >
+                  Anuluj
+                </button>
+                <button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Zapisywanie...' : 'Zapisz hasło'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 

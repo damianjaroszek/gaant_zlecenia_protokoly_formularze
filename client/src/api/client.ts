@@ -86,6 +86,16 @@ export async function updateUser(
   });
 }
 
+export async function resetUserPassword(
+  id: number,
+  new_password: string
+): Promise<{ success: boolean; username: string }> {
+  return fetchApi<{ success: boolean; username: string }>(`/admin/users/${id}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ new_password }),
+  });
+}
+
 // Production Lines
 export async function getProductionLines(): Promise<ProductionLineConfig[]> {
   return fetchApi<ProductionLineConfig[]>('/settings/lines');

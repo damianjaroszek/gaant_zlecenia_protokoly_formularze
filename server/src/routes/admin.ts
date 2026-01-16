@@ -119,6 +119,47 @@ router.patch('/users/:id', async (req, res) => {
   }
 });
 
+// POST /api/admin/users/:id/reset-password - resetowanie hasła użytkownika
+router.post('/users/:id/reset-password', async (req, res) => {
+  const { id } = req.params;
+  const { new_password } = req.body;
+
+  if (!new_password) {
+    return res.status(400).json({ error: 'Wymagane: new_password' });
+  }
+
+  if (new_password.length < 4) {
+    return res.status(400).json({ error: 'Hasło musi mieć minimum 4 znaki' });
+  }
+
+  try {
+    // Sprawdź czy użytkownik istnieje
+    const checkResult = await pool.query(
+      'SELECT id, username FROM app_produkcja.users WHERE id = $1',
+      [Number(id)]
+    );
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+    }
+
+    // Hashuj nowe hasło
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(new_password, saltRounds);
+
+    // Zaktualizuj hasło
+    await pool.query(
+      'UPDATE app_produkcja.users SET password_hash = $1 WHERE id = $2',
+      [passwordHash, Number(id)]
+    );
+
+    res.json({ success: true, username: checkResult.rows[0].username });
+  } catch (error) {
+    console.error('Błąd resetowania hasła:', error);
+    res.status(500).json({ error: 'Błąd serwera' });
+  }
+});
+
 // ==================== LINIE PRODUKCYJNE ====================
 
 // GET /api/admin/lines - pobierz wszystkie linie (do zarządzania)
