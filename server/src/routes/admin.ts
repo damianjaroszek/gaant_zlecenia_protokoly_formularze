@@ -180,6 +180,11 @@ router.patch('/users/:id', asyncHandler(async (req, res) => {
     throw ApiError.badRequest('Nie możesz dezaktywować własnego konta');
   }
 
+  // Nie pozwól adminowi odebrać sobie uprawnień administratora
+  if (is_admin === false && userId === req.session.userId) {
+    throw ApiError.badRequest('Nie możesz odebrać sobie uprawnień administratora');
+  }
+
   if (is_active === undefined && is_admin === undefined && display_name === undefined) {
     throw ApiError.badRequest('Brak pól do aktualizacji');
   }

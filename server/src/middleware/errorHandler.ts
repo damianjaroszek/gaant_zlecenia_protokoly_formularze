@@ -88,6 +88,12 @@ export function errorHandler(
     return;
   }
 
+  // Handle known validation errors from services (return as 400 Bad Request)
+  if (err instanceof Error && isKnownValidationError(err.message)) {
+    res.status(400).json({ error: err.message });
+    return;
+  }
+
   // Default error response
   res.status(500).json({ error: 'Błąd serwera' });
 }
@@ -100,8 +106,24 @@ function isPostgresError(err: unknown): err is { code: string } {
 }
 
 /**
- * 404 handler for undefined routes
+ * Known validation error messages from services that should return 400 Bad Request
  */
-export function notFoundHandler(req: Request, res: Response): void {
-  res.status(404).json({ error: `Nie znaleziono: ${req.method} ${req.path}` });
+const KNOWN_VALIDATION_ERRORS = [
+  'Hasło musi mieć minimum',
+  'Hasło może mieć maksymalnie',
+  'Hasło musi zawierać',
+  'Użytkownik o tym loginie już istnieje',
+  'Użytkownik nie znaleziony',
+];
+
+function isKnownValidationError(message: string): boolean {
+  return KNOWN_VALIDATION_ERRORS.some(pattern => message.includes(pattern));
+}
+
+/**
+ * 404 handler for undefined routes
+ * Note: Does not echo path/method to prevent information disclosure
+ */
+export function notFoundHandler(_req: Request, res: Response): void {
+  res.status(404).json({ error: 'Nie znaleziono' });
 }

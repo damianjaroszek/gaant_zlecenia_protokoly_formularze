@@ -1,14 +1,11 @@
 import { Router } from 'express';
 import { pool } from '../config/db.js';
-import { Order } from '../types/index.js';
+import { Order, MAX_DAYS } from '../types/index.js';
 import { productionLineService } from '../services/index.js';
 import { ApiError, asyncHandler } from '../middleware/errorHandler.js';
 import { parseId } from '../utils/validation.js';
 
 const router = Router();
-
-// UWAGA: Ta sama wartość musi być w client/src/components/DateRangePicker.tsx
-const MAX_DAYS = 62;
 
 /**
  * Validate date range parameters
