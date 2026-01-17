@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { userService, productionLineService } from '../services/index.js';
 import { ApiError, asyncHandler } from '../middleware/errorHandler.js';
-import { parseId, validateIntegerArray } from '../utils/validation.js';
+import { parseId, validateIntegerArray, validatePassword } from '../utils/validation.js';
+import { pool } from '../config/db.js';
 
 const router = Router();
 
@@ -98,6 +99,11 @@ router.post('/users', asyncHandler(async (req, res) => {
     throw ApiError.badRequest('Login musi mieć minimum 3 znaki');
   }
 
+  const passwordValidation = validatePassword(password);
+  if (!passwordValidation.isValid) {
+    throw ApiError.badRequest(passwordValidation.error!);
+  }
+
   const user = await userService.createUser({
     username,
     password,
@@ -184,6 +190,14 @@ router.patch('/users/:id', asyncHandler(async (req, res) => {
     throw ApiError.notFound('Użytkownik nie znaleziony');
   }
 
+  // Invalidate user sessions when permissions change (security measure)
+  if (is_active === false || is_admin !== undefined) {
+    await pool.query(
+      `DELETE FROM app_produkcja.sessions WHERE sess->>'userId' = $1`,
+      [userId.toString()]
+    );
+  }
+
   res.json(user);
 }));
 
@@ -254,12 +268,23 @@ router.post('/users/:id/reset-password', asyncHandler(async (req, res) => {
     throw ApiError.badRequest('Wymagane: new_password');
   }
 
+  const passwordValidation = validatePassword(new_password);
+  if (!passwordValidation.isValid) {
+    throw ApiError.badRequest(passwordValidation.error!);
+  }
+
   const user = await userService.findById(userId);
   if (!user) {
     throw ApiError.notFound('Użytkownik nie znaleziony');
   }
 
   await userService.resetPassword(userId, new_password);
+
+  // Invalidate all sessions for this user after password reset
+  await pool.query(
+    `DELETE FROM app_produkcja.sessions WHERE sess->>'userId' = $1`,
+    [userId.toString()]
+  );
 
   res.json({ success: true, username: user.username });
 }));
