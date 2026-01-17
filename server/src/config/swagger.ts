@@ -9,7 +9,10 @@ const __dirname = path.dirname(__filename);
 const API_VERSION = process.env.npm_package_version || '1.0.0';
 const API_TITLE = process.env.API_TITLE || 'Produkcja API';
 const API_DESCRIPTION =
-  process.env.API_DESCRIPTION || 'API do zarządzania zleceniami produkcyjnymi';
+  process.env.API_DESCRIPTION || 'API for production order management';
+
+// Determine file extension based on environment (ts for dev, js for production)
+const FILE_EXT = process.env.NODE_ENV === 'production' ? 'js' : 'ts';
 
 // Base error schema to avoid duplication
 const baseErrorSchema = {
@@ -27,6 +30,14 @@ const options: swaggerJsdoc.Options = {
       title: API_TITLE,
       version: API_VERSION,
       description: API_DESCRIPTION,
+      contact: {
+        name: 'API Support',
+        email: 'support@example.com',
+      },
+      license: {
+        name: 'MIT',
+        url: 'https://opensource.org/licenses/MIT',
+      },
     },
     servers: [
       {
@@ -41,8 +52,8 @@ const options: swaggerJsdoc.Options = {
         sessionAuth: {
           type: 'apiKey',
           in: 'cookie',
-          name: 'connect.sid',
-          description: 'Session-based authentication',
+          name: 'session',
+          description: 'Session-based authentication using HTTP-only cookie',
         },
       },
       schemas: {
@@ -79,17 +90,20 @@ const options: swaggerJsdoc.Options = {
             username: {
               type: 'string',
               minLength: 3,
+              maxLength: 50,
+              pattern: '^[a-zA-Z0-9._-]+$',
               description: 'Username for authentication',
             },
             password: {
               type: 'string',
               minLength: 8,
+              maxLength: 128,
               description: 'User password',
             },
           },
           example: {
-            username: 'jan.kowalski',
-            password: 'securePassword123',
+            username: 'john.doe',
+            password: '********',
           },
         },
         // User schemas
@@ -97,15 +111,15 @@ const options: swaggerJsdoc.Options = {
           type: 'object',
           required: ['id', 'username', 'is_admin'],
           properties: {
-            id: { type: 'integer' },
-            username: { type: 'string' },
-            display_name: { type: 'string', nullable: true },
+            id: { type: 'integer', description: 'Unique user identifier' },
+            username: { type: 'string', maxLength: 50 },
+            display_name: { type: 'string', maxLength: 100, nullable: true },
             is_admin: { type: 'boolean' },
           },
           example: {
             id: 1,
-            username: 'jan.kowalski',
-            display_name: 'Jan Kowalski',
+            username: 'john.doe',
+            display_name: 'John Doe',
             is_admin: false,
           },
         },
@@ -116,15 +130,15 @@ const options: swaggerJsdoc.Options = {
               type: 'object',
               required: ['is_active', 'created_at'],
               properties: {
-                is_active: { type: 'boolean' },
-                created_at: { type: 'string', format: 'date-time' },
+                is_active: { type: 'boolean', description: 'Whether user account is active' },
+                created_at: { type: 'string', format: 'date-time', description: 'Account creation timestamp' },
               },
             },
           ],
           example: {
             id: 1,
-            username: 'jan.kowalski',
-            display_name: 'Jan Kowalski',
+            username: 'john.doe',
+            display_name: 'John Doe',
             is_admin: false,
             is_active: true,
             created_at: '2024-01-15T10:30:00Z',
@@ -137,15 +151,19 @@ const options: swaggerJsdoc.Options = {
             username: {
               type: 'string',
               minLength: 3,
+              maxLength: 50,
+              pattern: '^[a-zA-Z0-9._-]+$',
               description: 'Unique username',
             },
             password: {
               type: 'string',
               minLength: 8,
+              maxLength: 128,
               description: 'User password (min 8 characters)',
             },
             display_name: {
               type: 'string',
+              maxLength: 100,
               nullable: true,
               description: 'Display name for the user',
             },
@@ -157,7 +175,7 @@ const options: swaggerJsdoc.Options = {
           },
           example: {
             username: 'new.user',
-            password: 'securePassword123',
+            password: '********',
             display_name: 'New User',
             is_admin: false,
           },
@@ -167,26 +185,26 @@ const options: swaggerJsdoc.Options = {
           type: 'object',
           required: ['id_zlecenia', 'data_realizacji', 'zmiana', 'opis'],
           properties: {
-            id_zlecenia: { type: 'integer' },
-            data_realizacji: { type: 'string', format: 'date' },
-            zmiana: { type: 'integer', enum: [1, 2, 3], description: 'Shift number' },
+            id_zlecenia: { type: 'integer', description: 'Unique order identifier' },
+            data_realizacji: { type: 'string', format: 'date', description: 'Order execution date' },
+            zmiana: { type: 'integer', enum: [1, 2, 3], description: 'Shift number (1-3)' },
             liniapm: { type: 'integer', nullable: true, description: 'Production line number' },
-            opis: { type: 'string', description: 'Order description' },
+            opis: { type: 'string', maxLength: 500, description: 'Order description' },
           },
           example: {
             id_zlecenia: 1001,
             data_realizacji: '2024-01-15',
             zmiana: 1,
             liniapm: 2,
-            opis: 'Produkcja komponentow A',
+            opis: 'Component A production batch',
           },
         },
         UpdateLineRequest: {
           type: 'object',
           required: ['id_zlecenia', 'new_line'],
           properties: {
-            id_zlecenia: { type: 'integer', description: 'Order ID to update' },
-            new_line: { type: 'integer', description: 'New production line number' },
+            id_zlecenia: { type: 'integer', description: 'Unique order identifier to update' },
+            new_line: { type: 'integer', minimum: 1, description: 'New production line number' },
           },
           example: {
             id_zlecenia: 1001,
@@ -198,16 +216,16 @@ const options: swaggerJsdoc.Options = {
           type: 'object',
           required: ['id', 'line_number', 'is_active'],
           properties: {
-            id: { type: 'integer' },
-            line_number: { type: 'integer' },
-            name: { type: 'string', nullable: true },
-            is_active: { type: 'boolean' },
-            display_order: { type: 'integer', nullable: true },
+            id: { type: 'integer', description: 'Unique production line identifier' },
+            line_number: { type: 'integer', minimum: 1, description: 'Production line number' },
+            name: { type: 'string', maxLength: 100, nullable: true, description: 'Production line name' },
+            is_active: { type: 'boolean', description: 'Whether the line is currently active' },
+            display_order: { type: 'integer', nullable: true, description: 'Order for UI display' },
           },
           example: {
             id: 1,
             line_number: 1,
-            name: 'Linia montazowa A',
+            name: 'Assembly Line A',
             is_active: true,
             display_order: 1,
           },
@@ -216,14 +234,14 @@ const options: swaggerJsdoc.Options = {
           type: 'object',
           required: ['id', 'line_number'],
           properties: {
-            id: { type: 'integer' },
-            line_number: { type: 'integer' },
-            name: { type: 'string', nullable: true },
+            id: { type: 'integer', description: 'Unique production line identifier' },
+            line_number: { type: 'integer', minimum: 1, description: 'Production line number' },
+            name: { type: 'string', maxLength: 100, nullable: true, description: 'Production line name' },
           },
           example: {
             id: 1,
             line_number: 1,
-            name: 'Linia montazowa A',
+            name: 'Assembly Line A',
           },
         },
         // Response schemas
@@ -231,15 +249,7 @@ const options: swaggerJsdoc.Options = {
           type: 'object',
           required: ['success'],
           properties: {
-            success: { type: 'boolean' },
-          },
-          example: { success: true },
-        },
-        DeleteResponse: {
-          type: 'object',
-          required: ['success'],
-          properties: {
-            success: { type: 'boolean' },
+            success: { type: 'boolean', description: 'Indicates operation success' },
           },
           example: { success: true },
         },
@@ -247,12 +257,12 @@ const options: swaggerJsdoc.Options = {
           type: 'object',
           required: ['success', 'username'],
           properties: {
-            success: { type: 'boolean' },
-            username: { type: 'string' },
+            success: { type: 'boolean', description: 'Indicates operation success' },
+            username: { type: 'string', description: 'Username of the affected account' },
           },
           example: {
             success: true,
-            username: 'jan.kowalski',
+            username: 'john.doe',
           },
         },
         // Health check schema
@@ -306,8 +316,8 @@ const options: swaggerJsdoc.Options = {
     ],
   },
   apis: [
-    path.join(__dirname, '../routes/*.js'),
-    path.join(__dirname, '../index.js'),
+    path.join(__dirname, `../routes/*.${FILE_EXT}`),
+    path.join(__dirname, `../index.${FILE_EXT}`),
   ],
 };
 
