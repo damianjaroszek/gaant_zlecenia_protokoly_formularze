@@ -1,10 +1,14 @@
-import { Order, User, DateRange, CreateUserRequest, ProductionLineConfig } from '../types';
+import {
+  Order,
+  User,
+  DateRange,
+  CreateUserRequest,
+  ProductionLineConfig,
+  AdminUser,
+  UserLineAccess,
+} from '../types';
 
-// Typ użytkownika z dodatkowymi polami dla admina
-export interface AdminUser extends User {
-  is_active: boolean;
-  created_at: string;
-}
+export type { AdminUser, UserLineAccess };
 
 const API_BASE = '/api';
 
@@ -129,12 +133,6 @@ export async function deleteLine(id: number): Promise<{ success: boolean }> {
 }
 
 // User Line Access
-export interface UserLineAccess {
-  id: number;
-  line_number: number;
-  name: string | null;
-}
-
 export async function getUserLines(userId: number): Promise<UserLineAccess[]> {
   return fetchApi<UserLineAccess[]>(`/admin/users/${userId}/lines`);
 }

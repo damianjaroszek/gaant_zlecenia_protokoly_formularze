@@ -1,6 +1,5 @@
 /**
- * Shared types - imported directly from shared package
- * Server uses relative imports due to tsx runtime limitations
+ * Shared types between client and server
  */
 
 // Order types
@@ -86,12 +85,3 @@ export interface DeleteResponse {
 
 // Constants
 export const MAX_DAYS = 62;
-
-// Express session extension (server-only)
-declare module 'express-session' {
-  interface SessionData {
-    userId: number;
-    username: string;
-    isAdmin: boolean;
-  }
-}
