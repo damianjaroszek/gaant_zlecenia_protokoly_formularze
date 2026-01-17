@@ -1,5 +1,6 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
+import { dbLogger } from './logger.js';
 
 dotenv.config();
 
@@ -13,11 +14,10 @@ export const pool = new Pool({
   password: process.env.DB_PASSWORD,
 });
 
-// Test połączenia przy starcie
 pool.on('connect', () => {
-  console.log('Połączono z bazą PostgreSQL');
+  dbLogger.info('Connected to PostgreSQL database');
 });
 
 pool.on('error', (err) => {
-  console.error('Błąd połączenia z bazą:', err);
+  dbLogger.error({ err }, 'Database connection error');
 });

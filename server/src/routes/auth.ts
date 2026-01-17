@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import rateLimit from 'express-rate-limit';
 import { pool } from '../config/db.js';
 import { User } from '../types/index.js';
+import { authLogger } from '../config/logger.js';
 
 const router = Router();
 
@@ -19,7 +20,50 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// POST /api/auth/login
+/**
+ * @openapi
+ * /auth/login:
+ *   post:
+ *     tags: [Auth]
+ *     summary: User login
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [username, password]
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successful login
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Missing credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Invalid credentials or inactive account
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many login attempts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
@@ -63,12 +107,34 @@ router.post('/login', loginLimiter, async (req, res) => {
       is_admin: user.is_admin || false
     });
   } catch (error) {
-    console.error('Błąd logowania:', error);
+    authLogger.error({ err: error, username }, 'Login error');
     res.status(500).json({ error: 'Błąd serwera' });
   }
 });
 
-// POST /api/auth/logout
+/**
+ * @openapi
+ * /auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: User logout
+ *     responses:
+ *       200:
+ *         description: Successfully logged out
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       500:
+ *         description: Logout error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -79,7 +145,28 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// GET /api/auth/me - sprawdzenie aktualnej sesji
+/**
+ * @openapi
+ * /auth/me:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Get current user session
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/me', async (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: 'Niezalogowany' });
@@ -106,7 +193,7 @@ router.get('/me', async (req, res) => {
       is_admin: user.is_admin || false
     });
   } catch (error) {
-    console.error('Błąd sprawdzania sesji:', error);
+    authLogger.error({ err: error, userId: req.session.userId }, 'Session check error');
     res.status(500).json({ error: 'Błąd serwera' });
   }
 });

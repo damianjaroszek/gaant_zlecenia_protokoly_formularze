@@ -6,12 +6,17 @@ import connectPgSimple from 'connect-pg-simple';
 import dotenv from 'dotenv';
 
 import { pool } from './config/db.js';
+import { logger } from './config/logger.js';
+import { requestLogger } from './middleware/requestLogger.js';
 import authRoutes from './routes/auth.js';
 import ordersRoutes from './routes/orders.js';
 import adminRoutes from './routes/admin.js';
 import settingsRoutes from './routes/settings.js';
 import { requireAuth, requireAdmin } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { healthService } from './services/HealthService.js';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger.js';
 
 dotenv.config();
 
@@ -30,7 +35,8 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(helmet()); // Bezpieczne nagłówki HTTP
+app.use(helmet());
+app.use(requestLogger);
 app.use(cors({
   origin: CORS_ORIGIN,
   credentials: true
@@ -56,15 +62,43 @@ app.use(session({
   }
 }));
 
+// API Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Produkcja API Documentation',
+}));
+app.get('/api/docs.json', (_req, res) => res.json(swaggerSpec));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/settings', requireAuth, settingsRoutes);
 app.use('/api/orders', requireAuth, ordersRoutes);
 app.use('/api/admin', requireAdmin, adminRoutes);
 
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+/**
+ * @openapi
+ * /health:
+ *   get:
+ *     tags: [Health]
+ *     summary: Health check endpoint
+ *     responses:
+ *       200:
+ *         description: Service is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthStatus'
+ *       503:
+ *         description: Service is degraded or unhealthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthStatus'
+ */
+app.get('/api/health', async (_req, res) => {
+  const health = await healthService.getHealth();
+  const httpStatus = health.status === 'healthy' ? 200 : 503;
+  res.status(httpStatus).json(health);
 });
 
 // 404 handler for undefined routes
@@ -75,5 +109,5 @@ app.use(errorHandler);
 
 // Start serwera
 app.listen(PORT, () => {
-  console.log(`Serwer działa na http://localhost:${PORT}`);
+  logger.info({ port: PORT }, 'Server started');
 });

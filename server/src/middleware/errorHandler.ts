@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { httpLogger } from '../config/logger.js';
 
 /**
  * Custom error class for API errors with status codes
@@ -59,11 +60,15 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ): void {
-  // Log error details
-  console.error(`[${req.method}] ${req.path}:`, {
-    message: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-  });
+  httpLogger.error(
+    {
+      err,
+      method: req.method,
+      path: req.path,
+      requestId: req.id,
+    },
+    'Request error'
+  );
 
   // Handle ApiError
   if (err instanceof ApiError) {

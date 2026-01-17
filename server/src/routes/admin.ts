@@ -4,15 +4,88 @@ import { ApiError, asyncHandler } from '../middleware/errorHandler.js';
 
 const router = Router();
 
-// ==================== UŻYTKOWNICY ====================
+// ==================== USERS ====================
 
-// GET /api/admin/users - lista wszystkich użytkowników
+/**
+ * @openapi
+ * /admin/users:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get all users
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/UserWithStatus'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/users', asyncHandler(async (_req, res) => {
   const users = await userService.getAllUsers();
   res.json(users);
 }));
 
-// POST /api/admin/users - tworzenie nowego użytkownika
+/**
+ * @openapi
+ * /admin/users:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Create a new user
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [username, password]
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 minLength: 3
+ *               password:
+ *                 type: string
+ *               display_name:
+ *                 type: string
+ *               is_admin:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: User created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserWithStatus'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: User already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/users', asyncHandler(async (req, res) => {
   const { username, password, display_name, is_admin } = req.body;
 
@@ -34,7 +107,59 @@ router.post('/users', asyncHandler(async (req, res) => {
   res.status(201).json(user);
 }));
 
-// PATCH /api/admin/users/:id - aktualizacja użytkownika (aktywność, admin)
+/**
+ * @openapi
+ * /admin/users/{id}:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: Update user status
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               is_active:
+ *                 type: boolean
+ *               is_admin:
+ *                 type: boolean
+ *               display_name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserWithStatus'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.patch('/users/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { is_active, is_admin, display_name } = req.body;
@@ -57,7 +182,61 @@ router.patch('/users/:id', asyncHandler(async (req, res) => {
   res.json(user);
 }));
 
-// POST /api/admin/users/:id/reset-password - resetowanie hasła użytkownika
+/**
+ * @openapi
+ * /admin/users/{id}/reset-password:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Reset user password
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [new_password]
+ *             properties:
+ *               new_password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 username:
+ *                   type: string
+ *       400:
+ *         description: Missing new_password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/users/:id/reset-password', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { new_password } = req.body;
@@ -76,15 +255,79 @@ router.post('/users/:id/reset-password', asyncHandler(async (req, res) => {
   res.json({ success: true, username: user.username });
 }));
 
-// ==================== LINIE PRODUKCYJNE ====================
+// ==================== PRODUCTION LINES ====================
 
-// GET /api/admin/lines - pobierz wszystkie linie (do zarządzania)
+/**
+ * @openapi
+ * /admin/lines:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get all production lines
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all production lines
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ProductionLine'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/lines', asyncHandler(async (_req, res) => {
   const lines = await productionLineService.getAllLines();
   res.json(lines);
 }));
 
-// POST /api/admin/lines - dodaj nową linię
+/**
+ * @openapi
+ * /admin/lines:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Create a new production line
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [line_number]
+ *             properties:
+ *               line_number:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 999
+ *               name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Production line created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProductionLine'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/lines', asyncHandler(async (req, res) => {
   const { line_number, name } = req.body;
 
@@ -100,7 +343,59 @@ router.post('/lines', asyncHandler(async (req, res) => {
   res.status(201).json(line);
 }));
 
-// PATCH /api/admin/lines/:id - aktualizuj linię
+/**
+ * @openapi
+ * /admin/lines/{id}:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: Update production line
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               is_active:
+ *                 type: boolean
+ *               name:
+ *                 type: string
+ *               display_order:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Production line updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProductionLine'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Line not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.patch('/lines/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { is_active, name, display_order } = req.body;
@@ -118,7 +413,43 @@ router.patch('/lines/:id', asyncHandler(async (req, res) => {
   res.json(line);
 }));
 
-// DELETE /api/admin/lines/:id - usuń linię
+/**
+ * @openapi
+ * /admin/lines/{id}:
+ *   delete:
+ *     tags: [Admin]
+ *     summary: Delete production line
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Production line deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Line not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.delete('/lines/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const deleted = await productionLineService.deleteLine(Number(id));
@@ -130,16 +461,92 @@ router.delete('/lines/:id', asyncHandler(async (req, res) => {
   res.json({ success: true });
 }));
 
-// ==================== UPRAWNIENIA DO LINII ====================
+// ==================== USER LINE ACCESS ====================
 
-// GET /api/admin/users/:id/lines - pobierz linie przypisane do użytkownika
+/**
+ * @openapi
+ * /admin/users/{id}/lines:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get lines assigned to user
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of lines assigned to user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ProductionLineBasic'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/users/:id/lines', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const lines = await userService.getUserLines(Number(id));
   res.json(lines);
 }));
 
-// PUT /api/admin/users/:id/lines - ustaw linie dla użytkownika (zastępuje wszystkie)
+/**
+ * @openapi
+ * /admin/users/{id}/lines:
+ *   put:
+ *     tags: [Admin]
+ *     summary: Set lines for user (replaces all)
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [line_ids]
+ *             properties:
+ *               line_ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       200:
+ *         description: Lines assigned to user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ProductionLineBasic'
+ *       400:
+ *         description: Invalid line_ids
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.put('/users/:id/lines', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { line_ids } = req.body;

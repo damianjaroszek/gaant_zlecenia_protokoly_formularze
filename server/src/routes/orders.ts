@@ -35,7 +35,51 @@ function validateDateRange(from: string, to: string): void {
   }
 }
 
-// GET /api/orders?from=YYYY-MM-DD&to=YYYY-MM-DD
+/**
+ * @openapi
+ * /orders:
+ *   get:
+ *     tags: [Orders]
+ *     summary: Get orders by date range
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: from
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: to
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: List of orders
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Order'
+ *       400:
+ *         description: Invalid date range
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/', asyncHandler(async (req, res) => {
   const { from, to } = req.query;
 
@@ -84,7 +128,59 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json(result.rows);
 }));
 
-// PATCH /api/orders/:id - aktualizacja linii produkcyjnej
+/**
+ * @openapi
+ * /orders/{id}:
+ *   patch:
+ *     tags: [Orders]
+ *     summary: Update order production line
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Order ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [new_line]
+ *             properties:
+ *               new_line:
+ *                 type: integer
+ *                 description: New production line number
+ *     responses:
+ *       200:
+ *         description: Update successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 id_zlecenia:
+ *                   type: string
+ *                 new_line:
+ *                   type: integer
+ *       400:
+ *         description: Invalid line number
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.patch('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { new_line } = req.body;
