@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { userService, productionLineService } from '../services/index.js';
 import { ApiError, asyncHandler } from '../middleware/errorHandler.js';
-import { parseId, validateIntegerArray, validatePassword } from '../utils/validation.js';
+import { parseId, validateIntegerArray, validatePassword, validateUsername, validateDisplayName, sanitizeDisplayName } from '../utils/validation.js';
 import { pool } from '../config/db.js';
 
 const router = Router();
@@ -95,8 +95,9 @@ router.post('/users', asyncHandler(async (req, res) => {
     throw ApiError.badRequest('Wymagane: username, password');
   }
 
-  if (username.length < 3) {
-    throw ApiError.badRequest('Login musi mieć minimum 3 znaki');
+  const usernameValidation = validateUsername(username);
+  if (!usernameValidation.isValid) {
+    throw ApiError.badRequest(usernameValidation.error!);
   }
 
   const passwordValidation = validatePassword(password);
@@ -104,10 +105,13 @@ router.post('/users', asyncHandler(async (req, res) => {
     throw ApiError.badRequest(passwordValidation.error!);
   }
 
+  // Sanitize display_name
+  const sanitizedDisplayName = sanitizeDisplayName(display_name);
+
   const user = await userService.createUser({
     username,
     password,
-    display_name,
+    display_name: sanitizedDisplayName ?? undefined,
     is_admin
   });
 
@@ -189,7 +193,24 @@ router.patch('/users/:id', asyncHandler(async (req, res) => {
     throw ApiError.badRequest('Brak pól do aktualizacji');
   }
 
-  const user = await userService.updateUser(userId, { is_active, is_admin, display_name });
+  // Validate display_name if provided
+  let sanitizedDisplayName: string | undefined;
+  if (display_name !== undefined) {
+    if (typeof display_name !== 'string') {
+      throw ApiError.badRequest('display_name musi być tekstem');
+    }
+    const displayNameValidation = validateDisplayName(display_name);
+    if (!displayNameValidation.isValid) {
+      throw ApiError.badRequest(displayNameValidation.error!);
+    }
+    sanitizedDisplayName = sanitizeDisplayName(display_name) ?? undefined;
+  }
+
+  const user = await userService.updateUser(userId, {
+    is_active,
+    is_admin,
+    display_name: sanitizedDisplayName !== undefined ? sanitizedDisplayName : display_name
+  });
 
   if (!user) {
     throw ApiError.notFound('Użytkownik nie znaleziony');

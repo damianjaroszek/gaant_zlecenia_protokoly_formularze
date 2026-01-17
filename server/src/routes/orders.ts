@@ -191,28 +191,46 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     throw ApiError.badRequest('Wymagane pole: new_line (liczba całkowita)');
   }
 
-  const isValid = await productionLineService.isValidLine(new_line);
-  if (!isValid) {
-    throw ApiError.badRequest('Nieprawidłowa linia produkcyjna');
+  // Check if user has access to the target line
+  const userId = req.session.userId!;
+  const isAdmin = req.session.isAdmin || false;
+  const userLines = await productionLineService.getLinesForUser(userId, isAdmin);
+  const hasAccess = userLines.some(line => line.line_number === new_line);
+
+  if (!hasAccess) {
+    throw ApiError.forbidden('Brak dostępu do tej linii produkcyjnej');
   }
 
-  // Najpierw próba UPDATE
-  const updateQuery = `
-    UPDATE g.mzk_protokoly_poz
-    SET opis = $1
-    WHERE id_zrodla1 = $2 AND rodzajzrodla = 3
-  `;
+  // Use transaction to prevent race conditions
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  const updateResult = await pool.query(updateQuery, [new_line.toString(), orderId]);
-
-  if (updateResult.rowCount === 0) {
-    // Rekord nie istnieje - INSERT z wymaganymi polami
-    const insertQuery = `
-      INSERT INTO g.mzk_protokoly_poz
-      (rodzajzrodla, id_zrodla1, id_zrodla2, id_zrodla3, id_zrodla4, nr_protokolu, lp, opis)
-      VALUES (3, $1, 0, 0, 0, 1, 1, $2)
+    // Try UPDATE first
+    const updateQuery = `
+      UPDATE g.mzk_protokoly_poz
+      SET opis = $1
+      WHERE id_zrodla1 = $2 AND rodzajzrodla = 3
     `;
-    await pool.query(insertQuery, [orderId, new_line.toString()]);
+
+    const updateResult = await client.query(updateQuery, [new_line.toString(), orderId]);
+
+    if (updateResult.rowCount === 0) {
+      // Record doesn't exist - INSERT with required fields
+      const insertQuery = `
+        INSERT INTO g.mzk_protokoly_poz
+        (rodzajzrodla, id_zrodla1, id_zrodla2, id_zrodla3, id_zrodla4, nr_protokolu, lp, opis)
+        VALUES (3, $1, 0, 0, 0, 1, 1, $2)
+      `;
+      await client.query(insertQuery, [orderId, new_line.toString()]);
+    }
+
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
 
   res.json({ success: true, id_zlecenia: orderId, new_line });

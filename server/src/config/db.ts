@@ -12,6 +12,12 @@ export const pool = new Pool({
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
+  // Connection pool configuration
+  max: parseInt(process.env.DB_POOL_MAX || '20'), // Maximum number of clients in the pool
+  min: parseInt(process.env.DB_POOL_MIN || '2'), // Minimum number of clients in the pool
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 5000, // Return error after 5 seconds if connection not established
+  allowExitOnIdle: false, // Keep pool alive even if all clients are idle
 });
 
 pool.on('connect', () => {

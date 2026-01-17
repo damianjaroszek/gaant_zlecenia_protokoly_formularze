@@ -90,19 +90,27 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Konto nieaktywne' });
     }
 
-    // Zapisz sesję
-    req.session.userId = user.id;
-    req.session.username = user.username;
-    req.session.isAdmin = user.is_admin || false;
+    // Regenerate session to prevent session fixation attacks
+    req.session.regenerate((err) => {
+      if (err) {
+        authLogger.error({ err }, 'Session regeneration error');
+        return res.status(500).json({ error: 'Błąd serwera' });
+      }
 
-    res.json({
-      id: user.id,
-      username: user.username,
-      display_name: user.display_name,
-      is_admin: user.is_admin || false
+      // Set session data after regeneration
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.isAdmin = user.is_admin || false;
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        display_name: user.display_name,
+        is_admin: user.is_admin || false
+      });
     });
   } catch (error) {
-    authLogger.error({ err: error, username }, 'Login error');
+    authLogger.error({ err: error }, 'Login error');
     res.status(500).json({ error: 'Błąd serwera' });
   }
 });
