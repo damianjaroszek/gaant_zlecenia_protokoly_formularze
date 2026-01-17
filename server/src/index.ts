@@ -62,12 +62,14 @@ app.use(session({
   }
 }));
 
-// API Documentation
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'Produkcja API Documentation',
-}));
-app.get('/api/docs.json', (_req, res) => res.json(swaggerSpec));
+// API Documentation (disabled in production for security)
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Produkcja API Documentation',
+  }));
+  app.get('/api/docs.json', (_req, res) => res.json(swaggerSpec));
+}
 
 // Routes
 app.use('/api/auth', authRoutes);
