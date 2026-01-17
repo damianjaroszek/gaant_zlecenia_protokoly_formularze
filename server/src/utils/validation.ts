@@ -1,8 +1,29 @@
 /**
- * Password validation utilities
+ * Validation utilities
  */
 
 export const PASSWORD_MIN_LENGTH = 8;
+
+/**
+ * Parses and validates a string ID parameter.
+ * Returns the parsed integer or null if invalid.
+ */
+export function parseId(id: string): number | null {
+  const parsed = parseInt(id, 10);
+  if (isNaN(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+    return null;
+  }
+  return parsed;
+}
+
+/**
+ * Validates that all elements in an array are positive integers.
+ */
+export function validateIntegerArray(arr: unknown[]): arr is number[] {
+  return arr.every(
+    (item) => typeof item === 'number' && Number.isInteger(item) && item > 0
+  );
+}
 
 export interface PasswordValidationResult {
   isValid: boolean;

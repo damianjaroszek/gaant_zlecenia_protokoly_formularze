@@ -41,7 +41,7 @@ app.use(cors({
   origin: CORS_ORIGIN,
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 
 // Sesje w PostgreSQL
 const PgSession = connectPgSimple(session);

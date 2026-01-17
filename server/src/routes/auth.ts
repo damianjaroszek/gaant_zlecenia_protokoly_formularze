@@ -8,8 +8,8 @@ import { authLogger } from '../config/logger.js';
 const router = Router();
 
 // Dummy hash for constant-time comparison (prevents timing attacks)
-// Generated with bcrypt.hashSync('dummy', 10)
-const DUMMY_HASH = '$2b$10$dummyhashfordummypasswordcomparison1234';
+// Generated with bcrypt.hashSync('dummy_password_for_timing_attack_prevention', 10)
+const DUMMY_HASH = '$2b$10$qkmLnOnp3oztKpfOUtffnOzZTikSyiUadJNKJima5jxSZAH3xvII6';
 
 // Rate limiting dla logowania - max 5 prób na 15 minut
 const loginLimiter = rateLimit({

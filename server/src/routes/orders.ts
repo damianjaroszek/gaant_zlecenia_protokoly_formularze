@@ -3,6 +3,7 @@ import { pool } from '../config/db.js';
 import { Order } from '../types/index.js';
 import { productionLineService } from '../services/index.js';
 import { ApiError, asyncHandler } from '../middleware/errorHandler.js';
+import { parseId } from '../utils/validation.js';
 
 const router = Router();
 
@@ -182,11 +183,15 @@ router.get('/', asyncHandler(async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.patch('/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const orderId = parseId(req.params.id);
+  if (orderId === null) {
+    throw ApiError.badRequest('Nieprawidłowe ID zlecenia');
+  }
+
   const { new_line } = req.body;
 
-  if (!new_line) {
-    throw ApiError.badRequest('Wymagane pole: new_line');
+  if (!new_line || typeof new_line !== 'number' || !Number.isInteger(new_line)) {
+    throw ApiError.badRequest('Wymagane pole: new_line (liczba całkowita)');
   }
 
   const isValid = await productionLineService.isValidLine(new_line);
@@ -201,7 +206,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     WHERE id_zrodla1 = $2 AND rodzajzrodla = 3
   `;
 
-  const updateResult = await pool.query(updateQuery, [new_line.toString(), id]);
+  const updateResult = await pool.query(updateQuery, [new_line.toString(), orderId]);
 
   if (updateResult.rowCount === 0) {
     // Rekord nie istnieje - INSERT z wymaganymi polami
@@ -210,10 +215,10 @@ router.patch('/:id', asyncHandler(async (req, res) => {
       (rodzajzrodla, id_zrodla1, id_zrodla2, id_zrodla3, id_zrodla4, nr_protokolu, lp, opis)
       VALUES (3, $1, 0, 0, 0, 1, 1, $2)
     `;
-    await pool.query(insertQuery, [id, new_line.toString()]);
+    await pool.query(insertQuery, [orderId, new_line.toString()]);
   }
 
-  res.json({ success: true, id_zlecenia: id, new_line });
+  res.json({ success: true, id_zlecenia: orderId, new_line });
 }));
 
 export default router;

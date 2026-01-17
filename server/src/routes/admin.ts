@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { userService, productionLineService } from '../services/index.js';
 import { ApiError, asyncHandler } from '../middleware/errorHandler.js';
+import { parseId, validateIntegerArray } from '../utils/validation.js';
 
 const router = Router();
 
@@ -161,11 +162,15 @@ router.post('/users', asyncHandler(async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.patch('/users/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const userId = parseId(req.params.id);
+  if (userId === null) {
+    throw ApiError.badRequest('Nieprawidłowe ID użytkownika');
+  }
+
   const { is_active, is_admin, display_name } = req.body;
 
   // Nie pozwól adminowi dezaktywować samego siebie
-  if (is_active === false && Number(id) === req.session.userId) {
+  if (is_active === false && userId === req.session.userId) {
     throw ApiError.badRequest('Nie możesz dezaktywować własnego konta');
   }
 
@@ -173,7 +178,7 @@ router.patch('/users/:id', asyncHandler(async (req, res) => {
     throw ApiError.badRequest('Brak pól do aktualizacji');
   }
 
-  const user = await userService.updateUser(Number(id), { is_active, is_admin, display_name });
+  const user = await userService.updateUser(userId, { is_active, is_admin, display_name });
 
   if (!user) {
     throw ApiError.notFound('Użytkownik nie znaleziony');
@@ -238,19 +243,23 @@ router.patch('/users/:id', asyncHandler(async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/users/:id/reset-password', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const userId = parseId(req.params.id);
+  if (userId === null) {
+    throw ApiError.badRequest('Nieprawidłowe ID użytkownika');
+  }
+
   const { new_password } = req.body;
 
   if (!new_password) {
     throw ApiError.badRequest('Wymagane: new_password');
   }
 
-  const user = await userService.findById(Number(id));
+  const user = await userService.findById(userId);
   if (!user) {
     throw ApiError.notFound('Użytkownik nie znaleziony');
   }
 
-  await userService.resetPassword(Number(id), new_password);
+  await userService.resetPassword(userId, new_password);
 
   res.json({ success: true, username: user.username });
 }));
@@ -397,14 +406,18 @@ router.post('/lines', asyncHandler(async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.patch('/lines/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const lineId = parseId(req.params.id);
+  if (lineId === null) {
+    throw ApiError.badRequest('Nieprawidłowe ID linii');
+  }
+
   const { is_active, name, display_order } = req.body;
 
   if (is_active === undefined && name === undefined && display_order === undefined) {
     throw ApiError.badRequest('Brak pól do aktualizacji');
   }
 
-  const line = await productionLineService.updateLine(Number(id), { is_active, name, display_order });
+  const line = await productionLineService.updateLine(lineId, { is_active, name, display_order });
 
   if (!line) {
     throw ApiError.notFound('Linia nie znaleziona');
@@ -451,8 +464,12 @@ router.patch('/lines/:id', asyncHandler(async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.delete('/lines/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const deleted = await productionLineService.deleteLine(Number(id));
+  const lineId = parseId(req.params.id);
+  if (lineId === null) {
+    throw ApiError.badRequest('Nieprawidłowe ID linii');
+  }
+
+  const deleted = await productionLineService.deleteLine(lineId);
 
   if (!deleted) {
     throw ApiError.notFound('Linia nie znaleziona');
@@ -494,8 +511,12 @@ router.delete('/lines/:id', asyncHandler(async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/users/:id/lines', asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const lines = await userService.getUserLines(Number(id));
+  const userId = parseId(req.params.id);
+  if (userId === null) {
+    throw ApiError.badRequest('Nieprawidłowe ID użytkownika');
+  }
+
+  const lines = await userService.getUserLines(userId);
   res.json(lines);
 }));
 
@@ -548,14 +569,22 @@ router.get('/users/:id/lines', asyncHandler(async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.put('/users/:id/lines', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const userId = parseId(req.params.id);
+  if (userId === null) {
+    throw ApiError.badRequest('Nieprawidłowe ID użytkownika');
+  }
+
   const { line_ids } = req.body;
 
   if (!Array.isArray(line_ids)) {
     throw ApiError.badRequest('Wymagane: line_ids (tablica)');
   }
 
-  const lines = await userService.setUserLines(Number(id), line_ids);
+  if (line_ids.length > 0 && !validateIntegerArray(line_ids)) {
+    throw ApiError.badRequest('line_ids musi zawierać tylko dodatnie liczby całkowite');
+  }
+
+  const lines = await userService.setUserLines(userId, line_ids);
   res.json(lines);
 }));
 
