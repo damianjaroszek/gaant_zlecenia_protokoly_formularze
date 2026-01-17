@@ -83,6 +83,7 @@ app.use('/api/admin', requireAdmin, adminRoutes);
  *   get:
  *     tags: [Health]
  *     summary: Health check endpoint
+ *     security: []
  *     responses:
  *       200:
  *         description: Service is healthy

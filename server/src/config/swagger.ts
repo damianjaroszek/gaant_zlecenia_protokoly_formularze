@@ -5,16 +5,28 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Dynamic version from package.json or fallback
+// Configuration from environment variables
 const API_VERSION = process.env.npm_package_version || '1.0.0';
+const API_TITLE = process.env.API_TITLE || 'Produkcja API';
+const API_DESCRIPTION =
+  process.env.API_DESCRIPTION || 'API do zarządzania zleceniami produkcyjnymi';
+
+// Base error schema to avoid duplication
+const baseErrorSchema = {
+  type: 'object',
+  required: ['error'],
+  properties: {
+    error: { type: 'string', description: 'Error message' },
+  },
+} as const;
 
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Produkcja API',
+      title: API_TITLE,
       version: API_VERSION,
-      description: 'API do zarządzania zleceniami produkcyjnymi',
+      description: API_DESCRIPTION,
     },
     servers: [
       {
@@ -22,6 +34,8 @@ const options: swaggerJsdoc.Options = {
         description: 'API Server',
       },
     ],
+    // Global security - requires authentication by default
+    security: [{ sessionAuth: [] }],
     components: {
       securitySchemes: {
         sessionAuth: {
@@ -32,66 +46,53 @@ const options: swaggerJsdoc.Options = {
         },
       },
       schemas: {
+        // Base error schema - used for inheritance
         Error: {
-          type: 'object',
-          required: ['error'],
-          properties: {
-            error: { type: 'string' },
-          },
-          example: {
-            error: 'Unauthorized access',
-          },
+          ...baseErrorSchema,
+          example: { error: 'An error occurred' },
         },
         Error400: {
-          type: 'object',
-          required: ['error'],
-          properties: {
-            error: { type: 'string' },
-          },
-          example: {
-            error: 'Invalid request parameters',
-          },
+          allOf: [{ $ref: '#/components/schemas/Error' }],
+          example: { error: 'Invalid request parameters' },
         },
         Error401: {
-          type: 'object',
-          required: ['error'],
-          properties: {
-            error: { type: 'string' },
-          },
-          example: {
-            error: 'Authentication required',
-          },
+          allOf: [{ $ref: '#/components/schemas/Error' }],
+          example: { error: 'Authentication required' },
         },
         Error403: {
-          type: 'object',
-          required: ['error'],
-          properties: {
-            error: { type: 'string' },
-          },
-          example: {
-            error: 'Access forbidden',
-          },
+          allOf: [{ $ref: '#/components/schemas/Error' }],
+          example: { error: 'Access forbidden' },
         },
         Error404: {
-          type: 'object',
-          required: ['error'],
-          properties: {
-            error: { type: 'string' },
-          },
-          example: {
-            error: 'Resource not found',
-          },
+          allOf: [{ $ref: '#/components/schemas/Error' }],
+          example: { error: 'Resource not found' },
         },
         Error500: {
+          allOf: [{ $ref: '#/components/schemas/Error' }],
+          example: { error: 'Internal server error' },
+        },
+        // Auth schemas
+        LoginRequest: {
           type: 'object',
-          required: ['error'],
+          required: ['username', 'password'],
           properties: {
-            error: { type: 'string' },
+            username: {
+              type: 'string',
+              minLength: 3,
+              description: 'Username for authentication',
+            },
+            password: {
+              type: 'string',
+              minLength: 8,
+              description: 'User password',
+            },
           },
           example: {
-            error: 'Internal server error',
+            username: 'jan.kowalski',
+            password: 'securePassword123',
           },
         },
+        // User schemas
         User: {
           type: 'object',
           required: ['id', 'username', 'is_admin'],
@@ -129,15 +130,48 @@ const options: swaggerJsdoc.Options = {
             created_at: '2024-01-15T10:30:00Z',
           },
         },
+        CreateUserRequest: {
+          type: 'object',
+          required: ['username', 'password'],
+          properties: {
+            username: {
+              type: 'string',
+              minLength: 3,
+              description: 'Unique username',
+            },
+            password: {
+              type: 'string',
+              minLength: 8,
+              description: 'User password (min 8 characters)',
+            },
+            display_name: {
+              type: 'string',
+              nullable: true,
+              description: 'Display name for the user',
+            },
+            is_admin: {
+              type: 'boolean',
+              default: false,
+              description: 'Whether user has admin privileges',
+            },
+          },
+          example: {
+            username: 'new.user',
+            password: 'securePassword123',
+            display_name: 'New User',
+            is_admin: false,
+          },
+        },
+        // Order schemas
         Order: {
           type: 'object',
           required: ['id_zlecenia', 'data_realizacji', 'zmiana', 'opis'],
           properties: {
             id_zlecenia: { type: 'integer' },
             data_realizacji: { type: 'string', format: 'date' },
-            zmiana: { type: 'integer', enum: [1, 2, 3] },
-            liniapm: { type: 'integer', nullable: true },
-            opis: { type: 'string' },
+            zmiana: { type: 'integer', enum: [1, 2, 3], description: 'Shift number' },
+            liniapm: { type: 'integer', nullable: true, description: 'Production line number' },
+            opis: { type: 'string', description: 'Order description' },
           },
           example: {
             id_zlecenia: 1001,
@@ -147,6 +181,19 @@ const options: swaggerJsdoc.Options = {
             opis: 'Produkcja komponentow A',
           },
         },
+        UpdateLineRequest: {
+          type: 'object',
+          required: ['id_zlecenia', 'new_line'],
+          properties: {
+            id_zlecenia: { type: 'integer', description: 'Order ID to update' },
+            new_line: { type: 'integer', description: 'New production line number' },
+          },
+          example: {
+            id_zlecenia: 1001,
+            new_line: 3,
+          },
+        },
+        // Production line schemas
         ProductionLine: {
           type: 'object',
           required: ['id', 'line_number', 'is_active'],
@@ -179,6 +226,36 @@ const options: swaggerJsdoc.Options = {
             name: 'Linia montazowa A',
           },
         },
+        // Response schemas
+        SuccessResponse: {
+          type: 'object',
+          required: ['success'],
+          properties: {
+            success: { type: 'boolean' },
+          },
+          example: { success: true },
+        },
+        DeleteResponse: {
+          type: 'object',
+          required: ['success'],
+          properties: {
+            success: { type: 'boolean' },
+          },
+          example: { success: true },
+        },
+        ResetPasswordResponse: {
+          type: 'object',
+          required: ['success', 'username'],
+          properties: {
+            success: { type: 'boolean' },
+            username: { type: 'string' },
+          },
+          example: {
+            success: true,
+            username: 'jan.kowalski',
+          },
+        },
+        // Health check schema
         HealthStatus: {
           type: 'object',
           required: ['status', 'timestamp', 'uptime', 'version', 'database'],
@@ -229,8 +306,8 @@ const options: swaggerJsdoc.Options = {
     ],
   },
   apis: [
-    path.join(__dirname, '../routes/*.ts'),
-    path.join(__dirname, '../index.ts'),
+    path.join(__dirname, '../routes/*.js'),
+    path.join(__dirname, '../index.js'),
   ],
 };
 

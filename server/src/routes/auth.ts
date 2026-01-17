@@ -26,18 +26,13 @@ const loginLimiter = rateLimit({
  *   post:
  *     tags: [Auth]
  *     summary: User login
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [username, password]
- *             properties:
- *               username:
- *                 type: string
- *               password:
- *                 type: string
+ *             $ref: '#/components/schemas/LoginRequest'
  *     responses:
  *       200:
  *         description: Successful login
@@ -50,13 +45,13 @@ const loginLimiter = rateLimit({
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/Error400'
  *       401:
  *         description: Invalid credentials or inactive account
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/Error401'
  *       429:
  *         description: Too many login attempts
  *         content:
@@ -118,22 +113,20 @@ router.post('/login', loginLimiter, async (req, res) => {
  *   post:
  *     tags: [Auth]
  *     summary: User logout
+ *     security: []
  *     responses:
  *       200:
  *         description: Successfully logged out
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
+ *               $ref: '#/components/schemas/SuccessResponse'
  *       500:
  *         description: Logout error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/Error500'
  */
 router.post('/logout', (req, res) => {
   req.session.destroy((err) => {
@@ -151,8 +144,6 @@ router.post('/logout', (req, res) => {
  *   get:
  *     tags: [Auth]
  *     summary: Get current user session
- *     security:
- *       - sessionAuth: []
  *     responses:
  *       200:
  *         description: Current user info
@@ -165,7 +156,7 @@ router.post('/logout', (req, res) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/Error401'
  */
 router.get('/me', async (req, res) => {
   if (!req.session.userId) {
