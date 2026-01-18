@@ -1,6 +1,5 @@
 import bcrypt from 'bcrypt';
 import { pool } from '../config/db.js';
-import { validatePassword } from '../utils/validation.js';
 
 export interface User {
   id: number;
@@ -98,13 +97,9 @@ class UserService {
 
   /**
    * Create a new user
+   * Note: Password validation should be done in the route layer before calling this method
    */
   async createUser(input: CreateUserInput): Promise<User> {
-    const passwordValidation = validatePassword(input.password);
-    if (!passwordValidation.isValid) {
-      throw new Error(passwordValidation.error);
-    }
-
     if (await this.usernameExists(input.username)) {
       throw new Error('Użytkownik o tym loginie już istnieje');
     }
@@ -158,25 +153,14 @@ class UserService {
 
   /**
    * Reset user password
+   * Note: Password validation and user existence check should be done in the route layer
    */
-  async resetPassword(id: number, newPassword: string): Promise<boolean> {
-    const passwordValidation = validatePassword(newPassword);
-    if (!passwordValidation.isValid) {
-      throw new Error(passwordValidation.error);
-    }
-
-    const user = await this.findById(id);
-    if (!user) {
-      throw new Error('Użytkownik nie znaleziony');
-    }
-
+  async resetPassword(id: number, newPassword: string): Promise<void> {
     const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
     await pool.query(
       'UPDATE app_produkcja.users SET password_hash = $1 WHERE id = $2',
       [passwordHash, id]
     );
-
-    return true;
   }
 
   /**

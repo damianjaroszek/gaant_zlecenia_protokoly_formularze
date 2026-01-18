@@ -20,26 +20,70 @@ export interface UpdateLineInput {
   display_order?: number;
 }
 
+// Cache configuration
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
 class ProductionLineService {
+  private activeLinesCache: CacheEntry<number[]> | null = null;
+  private allLinesCache: CacheEntry<ProductionLine[]> | null = null;
+
   /**
-   * Get all active line numbers
+   * Invalidate all caches (call after create/update/delete operations)
    */
-  async getActiveLineNumbers(): Promise<number[]> {
-    const result = await pool.query(
-      'SELECT line_number FROM app_produkcja.production_lines WHERE is_active = true'
-    );
-    return result.rows.map(r => r.line_number);
+  invalidateCache(): void {
+    this.activeLinesCache = null;
+    this.allLinesCache = null;
   }
 
   /**
-   * Get all production lines (for admin)
+   * Get all active line numbers (cached)
+   */
+  async getActiveLineNumbers(): Promise<number[]> {
+    const now = Date.now();
+
+    if (this.activeLinesCache && this.activeLinesCache.expiresAt > now) {
+      return this.activeLinesCache.data;
+    }
+
+    const result = await pool.query(
+      'SELECT line_number FROM app_produkcja.production_lines WHERE is_active = true'
+    );
+    const lineNumbers = result.rows.map(r => r.line_number);
+
+    this.activeLinesCache = {
+      data: lineNumbers,
+      expiresAt: now + CACHE_TTL_MS
+    };
+
+    return lineNumbers;
+  }
+
+  /**
+   * Get all production lines (for admin, cached)
    */
   async getAllLines(): Promise<ProductionLine[]> {
+    const now = Date.now();
+
+    if (this.allLinesCache && this.allLinesCache.expiresAt > now) {
+      return this.allLinesCache.data;
+    }
+
     const result = await pool.query(`
       SELECT id, line_number, name, is_active, display_order, created_at
       FROM app_produkcja.production_lines
       ORDER BY display_order, line_number
     `);
+
+    this.allLinesCache = {
+      data: result.rows,
+      expiresAt: now + CACHE_TTL_MS
+    };
+
     return result.rows;
   }
 
@@ -90,6 +134,7 @@ class ProductionLineService {
       RETURNING id, line_number, name, is_active, display_order, created_at
     `, [input.line_number, input.name || `Linia ${input.line_number}`, nextOrder]);
 
+    this.invalidateCache();
     return result.rows[0];
   }
 
@@ -126,6 +171,9 @@ class ProductionLineService {
       RETURNING id, line_number, name, is_active, display_order, created_at
     `, values);
 
+    if (result.rows[0]) {
+      this.invalidateCache();
+    }
     return result.rows[0] || null;
   }
 
@@ -137,6 +185,9 @@ class ProductionLineService {
       'DELETE FROM app_produkcja.production_lines WHERE id = $1 RETURNING id',
       [id]
     );
+    if (result.rows.length > 0) {
+      this.invalidateCache();
+    }
     return result.rows.length > 0;
   }
 }
