@@ -143,3 +143,16 @@ export async function setUserLines(userId: number, lineIds: number[]): Promise<U
     body: JSON.stringify({ line_ids: lineIds }),
   });
 }
+
+// Database Info
+export interface DatabaseInfo {
+  database: string;
+  user: string;
+  host: string;
+  port: number;
+  version: string;
+}
+
+export async function getDatabaseInfo(): Promise<DatabaseInfo> {
+  return fetchApi<DatabaseInfo>('/admin/db-info');
+}

@@ -40,4 +40,4 @@ export interface LineAccessModalProps {
   onClose: () => void;
 }
 
-export type TabType = 'users' | 'lines';
+export type TabType = 'users' | 'lines' | 'database';

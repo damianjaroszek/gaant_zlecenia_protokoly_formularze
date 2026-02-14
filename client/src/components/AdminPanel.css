@@ -493,3 +493,52 @@
   font-size: 0.8rem;
   color: var(--color-text-muted);
 }
+
+/* Zakładka bazy danych */
+.database-info {
+  padding: 0.5rem;
+}
+
+.database-info h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.1rem;
+  color: var(--color-text-primary);
+}
+
+.db-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.db-info-item {
+  background: var(--color-bg-tertiary);
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.db-info-item.db-info-version {
+  grid-column: 1 / -1;
+}
+
+.db-info-label {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.db-info-value {
+  font-size: 1rem;
+  color: var(--color-text-primary);
+  font-weight: 600;
+  word-break: break-word;
+}
+
+@media (max-width: 600px) {
+  .db-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
