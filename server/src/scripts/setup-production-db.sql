@@ -174,6 +174,44 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA app_produkcja TO produkcja_app_user
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA app_produkcja TO produkcja_app_user;
 
 -- ============================================================================
+-- KROK 7: UPRAWNIENIA DO SCHEMATÓW ERP (g, es)
+-- ============================================================================
+-- UWAGA: Poniższe uprawnienia dotyczą istniejących tabel ERP.
+-- Wykonaj tylko jeśli aplikacja łączy się z bazą ERP zawierającą te schematy.
+-- Jeśli tworzysz nową bazę bez ERP, pomiń ten krok.
+
+-- -----------------------------------------------------------------------------
+-- SCHEMAT g (tabele ERP - zlecenia produkcyjne)
+-- -----------------------------------------------------------------------------
+GRANT USAGE ON SCHEMA g TO produkcja_app_user;
+
+-- Tabela: mzk_zlecenia (tylko SELECT - odczyt zleceń)
+GRANT SELECT ON g.mzk_zlecenia TO produkcja_app_user;
+
+-- Tabela: mzk_zlecenia_makra (tylko SELECT)
+GRANT SELECT ON g.mzk_zlecenia_makra TO produkcja_app_user;
+
+-- Tabela: mzk_protokoly (SELECT + INSERT - tworzenie protokołów)
+GRANT SELECT, INSERT ON g.mzk_protokoly TO produkcja_app_user;
+GRANT USAGE, SELECT ON SEQUENCE g.mzk_protokoly_oid_seq TO produkcja_app_user;
+
+-- Tabela: mzk_protokoly_poz (SELECT + INSERT + UPDATE - pozycje protokołów)
+GRANT SELECT, INSERT, UPDATE ON g.mzk_protokoly_poz TO produkcja_app_user;
+GRANT USAGE, SELECT ON SEQUENCE g.mzk_protokoly_poz_oid_seq TO produkcja_app_user;
+
+-- Funkcje pomocnicze (konwersja dat)
+GRANT EXECUTE ON FUNCTION g.datasql(integer) TO produkcja_app_user;
+GRANT EXECUTE ON FUNCTION g.sqldata(date) TO produkcja_app_user;
+
+-- -----------------------------------------------------------------------------
+-- SCHEMAT es (tabele ERP - karty pracy)
+-- -----------------------------------------------------------------------------
+GRANT USAGE ON SCHEMA es TO produkcja_app_user;
+
+-- Tabela: ter_karty_pracy (tylko SELECT - odczyt kart pracy)
+GRANT SELECT ON es.ter_karty_pracy TO produkcja_app_user;
+
+-- ============================================================================
 -- WERYFIKACJA - SPRAWDŹ CZY WSZYSTKO DZIAŁA
 -- ============================================================================
 
