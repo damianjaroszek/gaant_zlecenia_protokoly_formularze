@@ -639,4 +639,56 @@ router.put('/users/:id/lines', asyncHandler(async (req, res) => {
   res.json(lines);
 }));
 
+// ==================== DATABASE INFO ====================
+
+/**
+ * @openapi
+ * /admin/db-info:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get database connection information
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Database connection info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 database:
+ *                   type: string
+ *                 user:
+ *                   type: string
+ *                 host:
+ *                   type: string
+ *                 port:
+ *                   type: integer
+ *                 version:
+ *                   type: string
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/db-info', asyncHandler(async (_req, res) => {
+  // Get PostgreSQL version
+  const versionResult = await pool.query('SELECT version()');
+  const version = versionResult.rows[0]?.version || 'Unknown';
+
+  // Get connection info from pool options
+  const poolOptions = (pool as { options?: { host?: string; port?: number; database?: string; user?: string } }).options || {};
+
+  res.json({
+    database: poolOptions.database || process.env.DB_NAME || 'Unknown',
+    user: poolOptions.user || process.env.DB_USER || 'Unknown',
+    host: poolOptions.host || process.env.DB_HOST || 'localhost',
+    port: poolOptions.port || parseInt(process.env.DB_PORT || '5432'),
+    version: version,
+  });
+}));
+
 export default router;

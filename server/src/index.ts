@@ -27,6 +27,12 @@ if (!SESSION_SECRET) {
   throw new Error('SESSION_SECRET jest wymagany w zmiennych środowiskowych');
 }
 
+// Zabezpieczenie przed użyciem domyślnego/słabego secretu w produkcji
+const INSECURE_SECRETS = ['change-this-to-random-secret', 'secret', 'your-secret-here'];
+if (process.env.NODE_ENV === 'production' && (SESSION_SECRET.length < 32 || INSECURE_SECRETS.includes(SESSION_SECRET))) {
+  throw new Error('SESSION_SECRET musi mieć minimum 32 znaki i nie może być domyślną wartością. Wygeneruj: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+}
+
 const CORS_ORIGIN = process.env.CORS_ORIGIN;
 if (!CORS_ORIGIN) {
   throw new Error('CORS_ORIGIN jest wymagany w zmiennych środowiskowych');
@@ -79,6 +85,7 @@ const adminLimiter = rateLimit({
 
 // Sesje w PostgreSQL
 const PgSession = connectPgSimple(session);
+app.set('trust proxy', 1);
 app.use(session({
   store: new PgSession({
     pool,
@@ -89,7 +96,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.COOKIE_SECURE === 'true',
     httpOnly: true,
     sameSite: 'lax', // Ochrona przed CSRF
     maxAge: 8 * 60 * 60 * 1000 // 8 godzin (zmiana robocza)
